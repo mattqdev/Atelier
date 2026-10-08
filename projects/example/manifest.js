@@ -1,28 +1,29 @@
 /* =========================================================
-   ESEMPIO — manifest di un progetto Atelier
-   Copia questa cartella in projects/<NuovoProgetto>/ e
-   registrala in projects/index.js.
+   EXAMPLE — an Atelier project manifest
+   Copy this folder to projects/<NewProject>/ and register it
+   in projects/index.js.
 
-   name        → nome del progetto
-   logo        → (opz.) immagine mostrata nella topbar
-   sections[]  → gruppi impilati dall'alto in basso
+   name        → project name
+   logo        → (optional) image shown in the top bar
+   sections[]  → groups stacked top to bottom
      id, title, note?, x?, y?
-     items[]   → tavole affiancate da sinistra a destra
+     items[]   → boards placed side by side, left to right
        id, title, type: "html" | "image", src, w, h
-       status? → "draft" | "review" | "approved" (badge sul canvas)
-       rev?    → numero da incrementare quando cambia il file:
-                 Atelier ricarica da solo solo quella tavola
-   src relativi alla cartella del progetto; per html w/h = @page.
+       status? → "draft" | "review" | "approved" (badge on the canvas)
+       rev?    → number to bump when the file changes:
+                 Atelier reloads only that board
+   src is relative to the project folder; for html w/h = @page.
+   The title is also the file name used by export.
    ========================================================= */
 window.WORKSPACE = {
-  name: "Esempio",
+  name: "Example",
   sections: [
     {
       id: "intro",
-      title: "Benvenuto",
+      title: "Welcome",
       note: "1080×1350",
       items: [
-        { id: "welcome", title: "Benvenuto", type: "html", src: "boards/welcome.html", w: 1080, h: 1350 }
+        { id: "welcome", title: "Welcome", type: "html", src: "boards/welcome.html", w: 1080, h: 1350 }
       ]
     }
   ]

@@ -1,9 +1,9 @@
 /* =========================================================
-   ATELIER — traduzioni dell'interfaccia
-   Le lingue stanno in app/locales/<code>.js (window.ATELIER_LOCALES).
-   Lingua: ?lang=<code> → ultima scelta → lingua del browser → en.
-   Nell'HTML: data-i18n (testo), data-i18n-html (markup fidato),
-   data-i18n-title (tooltip). Nel JS: t('chiave', { var }).
+   ATELIER — UI translations
+   Languages live in app/locales/<code>.js (window.ATELIER_LOCALES).
+   Language: ?lang=<code> → last choice → browser language → en.
+   In HTML: data-i18n (text), data-i18n-html (trusted markup),
+   data-i18n-title (tooltip). In JS: t('key', { var }).
    ========================================================= */
 (() => {
   const LOCALES = window.ATELIER_LOCALES || {};

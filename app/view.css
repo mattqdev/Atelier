@@ -1,0 +1,69 @@
+/* =========================================================
+   VIEWER — single-board page (view.html), on top of app.css
+   ========================================================= */
+body.viewer { --inv: 1; background: var(--canvas); }
+.viewer .topbar { gap: 2px; }
+.viewer .topbar .app-icon { width: 22px; height: 22px; margin: 0 6px 0 4px; flex: none; }
+a.tb-btn { color: inherit; text-decoration: none; }
+.tb-btn.on { background: #E5F4FF; color: var(--ui-accent); }
+.tb-btn:disabled svg { opacity: 1; }
+
+.v-title { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; padding-right: 8px; }
+.v-title b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-title > span { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ui-muted); white-space: nowrap; overflow: hidden; }
+.v-title .status { font-style: normal; font-size: 10px; padding: 2px 6px; }
+.v-count { min-width: 52px; text-align: center; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- STAGE ---------- */
+.stage {
+  position: fixed; top: var(--topbar-h); right: 0; bottom: 0; left: 0;
+  overflow: auto; display: flex; padding: 40px; /* = PAD in view.js */
+}
+.stage.can-pan { cursor: grab; }
+.stage.panning { cursor: grabbing; }
+.v-frame {
+  position: relative; flex: none; margin: auto; overflow: hidden; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 8px 30px rgba(0,0,0,.08);
+}
+.v-frame > iframe, .v-frame > img {
+  position: absolute; left: 0; top: 0; display: block; border: 0;
+  transform-origin: 0 0; pointer-events: none;
+}
+.v-frame > img { object-fit: cover; }
+
+body[data-bg="canvas"] .stage {
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+body[data-bg="white"] .stage { background: #fff; }
+body[data-bg="white"] .v-frame { box-shadow: 0 0 0 1px var(--ui-line); }
+body[data-bg="dark"] .stage { background: #1E1E1E; }
+body[data-bg="checker"] .stage {
+  background: repeating-conic-gradient(#E3E3E3 0 25%, #fff 0 50%) 0 0 / 16px 16px;
+}
+
+/* full screen: board only */
+body.fs .topbar { display: none; }
+body.fs .stage { top: 0; padding: 0; }
+body.fs .v-frame { box-shadow: none; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 30; transform: translate(-50%, 8px);
+  background: #1E1E1E; color: #fff; padding: 8px 14px; border-radius: 8px; font-weight: 500;
+  opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 980px) { .v-opt { display: none; } }
+@media (max-width: 560px) { .viewer .app-icon, .v-count, #zoomOut, #zoomIn { display: none; } }
+
+/* ---------- PRINT / SAVE AS PDF ---------- */
+/* the page size comes from <style id="pageSize"> (= the board's w×h) */
+@media print {
+  html, body { height: auto; overflow: visible; background: #fff; }
+  .topbar, .toast, .xp { display: none !important; }
+  .stage { position: static; display: block; padding: 0; overflow: visible; background: none !important; }
+  .v-frame { margin: 0; box-shadow: none !important; width: var(--w) !important; height: var(--h) !important; }
+  .v-frame > iframe, .v-frame > img { transform: none !important; }
+}

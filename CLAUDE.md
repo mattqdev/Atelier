@@ -1,67 +1,80 @@
 # Atelier
 
-Tool personale di design stile Figma: un canvas HTML statico multi-progetto, mantenuto da Claude. Sostituisce Figma/Paper/Trello. Nessun MCP, nessun build step, nessuna dipendenza (i progetti possono usare Google Fonts).
+Personal Figma-style design tool: a static, multi-project HTML canvas maintained by Claude. It replaces Figma/Paper/Trello. No MCP, no build step, no dependencies (projects may use Google Fonts).
 
-Si apre con doppio clic su `Atelier.html` (funziona da `file://`). Il menu nella topbar cambia progetto; `Atelier.html?p=<id>` apre un progetto specifico.
+Open it by double-clicking `Atelier.html` (works from `file://`). The top-bar menu switches project; `Atelier.html?p=<id>` opens a specific one.
 
-## Struttura
+## Structure
 
 ```
-Atelier.html              → shell del canvas. Non contiene contenuti.
-app/app.js|css            → motore (pan/zoom, livelli, selezione, cambio progetto). Toccare solo per nuove funzioni.
-app/i18n.js               → traduzioni UI: sceglie la lingua e applica i testi
-app/locales/<code>.js     → dizionari (en = riferimento, it)
-app/atelier.svg           → icona dell'app
-projects/index.js         → registro progetti: [{ id, name }] (locale, gitignored)
-projects/<id>/manifest.js → UNICA fonte di verità su cosa appare sul canvas per quel progetto
-projects/<id>/assets/     → css/logo/font del progetto
-projects/<id>/boards/     → una tavola = un file HTML standalone
-projects/<id>/sources/    → file originali dell'utente (pdf, png…): non modificare
-projects/<id>/CLAUDE.md   → regole specifiche del progetto (brand, tono)
-projects/example/         → progetto demo, l'unico versionato
+Atelier.html              → canvas shell. Holds no content.
+view.html                 → single-board viewer (opened by "Open"): fit, zoom, browse, print, export
+atelier.py                → optional local server (stdlib only): serves the folder, renders exports with headless Chrome
+app/app.js|css            → canvas engine (pan/zoom, layers, selection, project switch). Touch only for new features.
+app/view.js|css           → viewer logic and styles (view.css builds on app.css)
+app/export.js             → Figma-style export dialog, re-encoding (JPG/WEBP) and ZIP, shared by canvas and viewer
+app/i18n.js               → UI translations: picks the language and applies the strings
+app/locales/<code>.js     → dictionaries (en = reference, it)
+app/atelier.svg           → app icon
+projects/index.js         → project registry: [{ id, name }] (local, gitignored)
+projects/<id>/manifest.js → SINGLE source of truth for what appears on that project's canvas
+projects/<id>/assets/     → project css/logo/fonts
+projects/<id>/boards/     → one board = one standalone HTML file
+projects/<id>/sources/    → the user's original files (pdf, png…): do not modify
+projects/<id>/CLAUDE.md   → project-specific rules (brand, tone)
+projects/example/         → demo project, the only versioned one
 ```
 
-Il repo GitHub (`mattqdev/atelier`, privato) contiene solo il programma: `projects/*` è in `.gitignore` tranne `example/`.
+The GitHub repo (`mattqdev/atelier`, private) holds only the program: `projects/*` is in `.gitignore` except `example/`.
 
-## Lingue (i18n)
+Code comments and contributor docs are written in English.
 
-Nessun testo dell'interfaccia va scritto a mano in `Atelier.html` o `app.js`: usare una chiave.
-- HTML: `data-i18n="chiave"` (testo), `data-i18n-title` (tooltip), `data-i18n-html` (markup fidato, es. `<kbd>`).
-- JS: `ATELIER_I18N.t('chiave', { var })`, con segnaposto `{var}` nel testo.
-- Ogni chiave nuova va aggiunta in **tutti** i file di `app/locales/`; `en.js` è il riferimento (fallback se manca una chiave).
-- Lingua scelta: `?lang=<code>` → ultima scelta (localStorage) → lingua del browser → `en`. Menu con il globo nella topbar.
-- Nuova lingua: copia `app/locales/en.js` in `<code>.js`, traduci, aggiungi lo `<script>` in `Atelier.html` prima di `app/i18n.js`.
+## Languages (i18n)
 
-I contenuti dei progetti (tavole, nomi nel manifest) non passano dall'i18n.
+No UI text is hard-coded in `Atelier.html`, `view.html` or the JS: use a key.
+- HTML: `data-i18n="key"` (text), `data-i18n-title` (tooltip), `data-i18n-html` (trusted markup, e.g. `<kbd>`).
+- JS: `ATELIER_I18N.t('key', { var })`, with `{var}` placeholders in the string.
+- Every new key goes into **all** files in `app/locales/`; `en.js` is the reference (fallback when a key is missing).
+- Language: `?lang=<code>` → last choice (localStorage) → browser language → `en`. Globe menu in the top bar.
+- New language: copy `app/locales/en.js` to `<code>.js`, translate it, add its `<script>` to `Atelier.html` and `view.html` before `app/i18n.js`.
 
-## Nuovo progetto
+Project content (boards, names in the manifest) does not go through i18n.
 
-1. Copia `projects/example/` in `projects/<id>/` (id = nome cartella, senza spazi).
-2. Aggiorna `name` (e `logo` opzionale) nel suo `manifest.js`.
-3. Aggiungi `{ id, name }` in `projects/index.js`.
-4. Se il progetto ha un brand, crea `assets/brand.css` con i token e `projects/<id>/CLAUDE.md` con le regole.
+## New project
 
-## Aggiungere una tavola
+1. Copy `projects/example/` to `projects/<id>/` (id = folder name, no spaces).
+2. Update `name` (and optional `logo`) in its `manifest.js`.
+3. Add `{ id, name }` to `projects/index.js`.
+4. If the project has a brand, create `assets/brand.css` with the tokens and `projects/<id>/CLAUDE.md` with the rules.
 
-1. Crea `projects/<id>/boards/<sezione>/<nome>.html` partendo da una tavola esistente dello stesso tipo.
-2. Ogni tavola: link al css del progetto con percorso relativo, `@page { size: Wpx Hpx; }`, un solo `<section class="page …">`. CSS specifico in un `<style>` locale.
-3. Aggiungi l'item nel manifest (`id`, `title`, `type: "html"|"image"`, `src`, `w`, `h`). `src` è relativo alla cartella del progetto; `w/h` devono coincidere con `@page`.
-4. Immagini (png/jpg) si aggiungono direttamente con `type: "image"`, senza file HTML.
-5. Campi opzionali dell'item: `status: "draft"|"review"|"approved"` (badge sul canvas e nei livelli) e `rev`.
+## Adding a board
+
+1. Create `projects/<id>/boards/<section>/<name>.html` starting from an existing board of the same kind.
+2. Every board: link to the project css with a relative path, `@page { size: Wpx Hpx; }`, a single `<section class="page …">`. Board-specific CSS goes in a local `<style>`.
+3. Add the item to the manifest (`id`, `title`, `type: "html"|"image"`, `src`, `w`, `h`). `src` is relative to the project folder; `w/h` must match `@page` (export and PDF rely on it).
+4. Images (png/jpg) are added directly with `type: "image"`, no HTML file.
+5. Optional item fields: `status: "draft"|"review"|"approved"` (badge on the canvas and in the layers) and `rev`.
+
+The board `title` is also the exported file name.
 
 ## Live reload
 
-Atelier rilegge `manifest.js` ogni 2 s: modifiche al manifest appaiono da sole, senza ricaricare. Il contenuto di una tavola invece non viene rilevato: **dopo aver modificato un file di tavola, incrementa `rev` del suo item** (es. `rev: 2`) e Atelier ricarica solo quell'iframe. Il pulsante ricarica della topbar ricarica tutte le tavole.
+Atelier re-reads `manifest.js` every 2 s (canvas and viewer): manifest changes show up by themselves, no reload needed. A board's content is not watched: **after editing a board file, bump its item's `rev`** (e.g. `rev: 2`) and Atelier reloads only that iframe. The top-bar reload button reloads every board.
 
-Link: `Atelier.html?p=<id>&b=<itemId>` apre il progetto zoomato su quella tavola (l'URL si aggiorna da solo con la selezione).
+Links: `Atelier.html?p=<id>&b=<itemId>` opens the project zoomed on that board (the URL updates with the selection); `view.html?p=<id>&b=<itemId>` opens it in the viewer.
 
-Le sezioni si impilano in verticale in ordine; le tavole si affiancano da sinistra a destra. `x`/`y` su una sezione solo se serve una posizione fissa.
+Sections stack vertically in order; boards sit side by side left to right. Use `x`/`y` on a section only when it needs a fixed position.
 
-## Verifica
+## Export
 
-Dopo modifiche, screenshot headless per controllare:
+Export (⇧⌘E on the canvas and in the viewer) needs `python3 atelier.py`: the page must be served over http so it can call `/__atelier/render`, which runs headless Chrome (`--screenshot` with `--force-device-scale-factor` for PNG, `--print-to-pdf` for PDF). JPG/WEBP are re-encoded in the browser; multiple files are zipped in the browser. Opened from `file://`, the dialog explains how to start the server; the viewer's print / save as PDF works without it.
+
+## Verification
+
+After changes, take a headless screenshot to check:
 ```
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
   --window-size=W,H --virtual-time-budget=5000 --screenshot=out.png "file://$PWD/<file>.html"
 ```
-Per il workspace intero usare `Atelier.html?p=<id>` con 1600×1000.
+For the whole workspace use `Atelier.html?p=<id>` at 1600×1000; for the viewer `view.html?p=<id>&b=<itemId>`.
+Don't pass `--user-data-dir` to headless Chrome: it writes the file but never exits.

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier</title>
+<link rel="icon" href="app/atelier.svg">
+<link rel="stylesheet" href="app/app.css">
+<link rel="stylesheet" href="app/view.css">
+<style id="pageSize"></style>
+</head>
+<body class="viewer">
+
+<header class="topbar">
+  <a class="tb-btn" id="backBtn" data-i18n-title="view.canvas">
+    <svg viewBox="0 0 16 16"><path d="M13 8H3M7 4 3 8l4 4"/></svg>
+  </a>
+  <img class="app-icon" src="app/atelier.svg" alt="Atelier">
+  <div class="v-title"><b id="vTitle"></b><span id="vMeta"></span></div>
+  <div class="spacer"></div>
+  <button class="tb-btn" id="prevBtn" data-i18n-title="view.prev">
+    <svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>
+  </button>
+  <span class="v-count" id="vCount"></span>
+  <button class="tb-btn" id="nextBtn" data-i18n-title="view.next">
+    <svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></svg>
+  </button>
+  <div class="sep"></div>
+  <button class="tb-btn" id="zoomOut" data-i18n-title="zoom.out">−</button>
+  <button class="tb-btn zoom-val" id="zoomVal" data-i18n-title="view.actual">100%</button>
+  <button class="tb-btn" id="zoomIn" data-i18n-title="zoom.in">+</button>
+  <button class="tb-btn" id="fitBtn" data-i18n-title="view.fit">
+    <svg viewBox="0 0 16 16"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span class="tb-label" data-i18n="fit.label"></span>
+  </button>
+  <div class="sep v-opt"></div>
+  <button class="tb-btn v-opt" id="bgBtn" data-i18n-title="view.bg">
+    <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.75"/><path d="M8 2.25v11.5" /><path d="M8 4h3.5M8 6.5h5.5M8 9h5.5M8 11.5h3.5" stroke-width="1.2"/></svg>
+  </button>
+  <button class="tb-btn v-opt" id="fsBtn" data-i18n-title="view.fullscreen">
+    <svg viewBox="0 0 16 16"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>
+  </button>
+  <div class="sep v-opt"></div>
+  <button class="tb-btn v-opt" id="linkBtn" data-i18n-title="view.copyLink">
+    <svg viewBox="0 0 16 16"><path d="M7 9a2.5 2.5 0 0 0 3.5 0l2-2A2.5 2.5 0 0 0 9 3.5l-.75.75M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5l.75-.75"/></svg>
+  </button>
+  <button class="tb-btn v-opt" id="copyBtn" data-i18n-title="view.copyImage">
+    <svg viewBox="0 0 16 16"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M11 5V3.5A1 1 0 0 0 10 2.5H3.5a1 1 0 0 0-1 1V10a1 1 0 0 0 1 1H5"/></svg>
+  </button>
+  <a class="tb-btn v-opt" id="fileBtn" target="_blank" data-i18n-title="view.openFile">
+    <svg viewBox="0 0 16 16"><path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg>
+  </a>
+  <button class="tb-btn v-opt" id="printBtn" data-i18n-title="view.print">
+    <svg viewBox="0 0 16 16"><path d="M4.5 6V2.5h7V6M4.5 11.5h-1a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1h-1"/><rect x="4.5" y="9.5" width="7" height="4"/></svg>
+  </button>
+  <div class="sep"></div>
+  <button class="tb-btn primary" id="exportBtn" data-i18n-title="export">
+    <svg viewBox="0 0 16 16"><path d="M8 2.5v8M4.75 7.25 8 10.5l3.25-3.25M2.5 11v1.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V11"/></svg><span class="tb-label" data-i18n="export.label"></span>
+  </button>
+</header>
+
+<main class="stage" id="stage"><div class="v-frame" id="vFrame"></div></main>
+<div class="toast" id="toast"></div>
+
+<script src="app/locales/en.js"></script>
+<script src="app/locales/it.js"></script>
+<script src="app/i18n.js"></script>
+<script src="projects/index.js" onerror="window.ATELIER_PROJECTS=null"></script>
+<script src="app/export.js"></script>
+<script src="app/view.js"></script>
+</body>
+</html>

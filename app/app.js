@@ -1,12 +1,12 @@
 /* =========================================================
-   ATELIER — canvas infinito stile Figma, multi-progetto
-   Legge il registro (projects/index.js → window.ATELIER_PROJECTS),
-   sceglie il progetto (?p=<id> → ultimo aperto → primo) e carica
-   projects/<id>/manifest.js (window.WORKSPACE), poi dispone
-   sezioni e tavole. Non serve modificare questo file per
-   aggiungere contenuti: basta il manifest del progetto.
-   Il manifest viene riletto ogni 2 s: le modifiche appaiono da
-   sole; un item con `rev` cambiato ricarica solo la sua tavola.
+   ATELIER — Figma-style infinite canvas, multi-project
+   Reads the registry (projects/index.js → window.ATELIER_PROJECTS),
+   picks the project (?p=<id> → last opened → first) and loads
+   projects/<id>/manifest.js (window.WORKSPACE), then lays out
+   sections and boards. Adding content never requires touching
+   this file: the project manifest is enough.
+   The manifest is re-read every 2 s: changes show up on their
+   own; an item whose `rev` changed reloads only its board.
    ========================================================= */
 (() => {
   const { t } = window.ATELIER_I18N;
@@ -49,19 +49,20 @@
 
   function start(WS) {
     try { localStorage.setItem(LAST_KEY, PROJECT.id); } catch {}
-    if (!wanted) setParam('p', PROJECT.id); // il link copiato riapre questo progetto
+    if (!wanted) setParam('p', PROJECT.id); // a copied link reopens this project
     const LAYOUT = { sectionPad: 80, itemGap: 80, sectionGap: 220 };
     const ZOOM_MIN = 0.02, ZOOM_MAX = 4;
 
     const $ = s => document.querySelector(s);
     const viewport = $('#viewport'), world = $('#world'), layers = $('#layers');
-    const zoomVal = $('#zoomVal'), openBtn = $('#openBtn');
+    const zoomVal = $('#zoomVal'), openBtn = $('#openBtn'), exportBtn = $('#exportBtn');
 
     const view = { x: 0, y: 0, s: 1 };
     let items = [];        // { def, section, x, y, w, h, el, layerEl }
     let sections = [];     // { def, x, y, w, h, items }
-    const frames = new Map(); // chiave item → { el, type, url } (riusati tra un rebuild e l'altro)
-    let selected = null, bust = 0;
+    const frames = new Map(); // item key → { el, type, url } (reused across rebuilds)
+    let selected = null, bust = 0; // selected = primary selection (URL, Open, arrows)
+    const picked = new Set();     // every selected item (Shift/⌘-click)
 
     const store = {
       get() { try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; } },
@@ -117,18 +118,22 @@
         el.className = 'section';
         Object.assign(el.style, { left: sec.x + 'px', top: sec.y + 'px', width: sec.w + 'px', height: sec.h + 'px' });
         el.innerHTML = `<div class="section-title">${esc(sec.def.title)}${sec.def.note ? `<small>${esc(sec.def.note)}</small>` : ''}</div>`;
-        world.prepend(el); // le sezioni restano sotto le tavole
+        world.prepend(el); // sections stay below the boards
 
         const lb = document.createElement('button');
         lb.className = 'layer l-section';
         lb.innerHTML = `${ICONS.section}<span>${esc(sec.def.title)}</span><span class="meta">${sec.items.length}</span>`;
-        lb.onclick = () => { select(null); zoomTo(sec, true); };
+        lb.onclick = e => {
+          // Shift/⌘-click on a section adds all its boards to the selection
+          if (e.shiftKey || e.metaKey || e.ctrlKey) return sec.items.forEach(it => picked.has(it) || select(it, true, true));
+          select(null); zoomTo(sec, true);
+        };
         layers.appendChild(lb);
 
         sec.items.forEach(it => {
           const d = it.def, url = srcOf(d);
           let key = d.id;
-          while (keep.has(key)) key += '*'; // id duplicati: non perdere la tavola
+          while (keep.has(key)) key += '*'; // duplicate ids: don't lose the board
           keep.add(key);
           let f = frames.get(key);
           if (!f || f.type !== d.type) {
@@ -155,7 +160,10 @@
           const li = document.createElement('button');
           li.className = 'layer l-item';
           li.innerHTML = `${ICONS[d.type] || ICONS.html}<span>${esc(d.title)}</span>${d.status ? `<i class="dot st-${STATUS.includes(d.status) ? d.status : 'other'}" title="${esc(STATUS.includes(d.status) ? t('status.' + d.status) : d.status)}"></i>` : ''}`;
-          li.onclick = () => { select(it); zoomTo(it, true); };
+          li.onclick = e => {
+            if (e.shiftKey || e.metaKey || e.ctrlKey) return select(it, true, true);
+            select(it); zoomTo(it, true);
+          };
           layers.appendChild(li);
           it.layerEl = li;
         });
@@ -165,24 +173,26 @@
         `<div class="empty-msg"><div><b>${esc(t('project.empty'))}</b>${esc(t('project.emptyHint'))}</div></div>`);
     }
 
-    // ricostruisce il canvas dal manifest mantenendo vista e selezione
+    // rebuilds the canvas from the manifest, keeping view and selection
     function build() {
-      const selId = selected?.def.id;
-      selected = null;
+      const selId = selected?.def.id, pickedIds = new Set([...picked].map(i => i.def.id));
+      selected = null; picked.clear();
       layout();
       render();
       document.title = (WS.name || PROJECT.name) + ' — Atelier';
       const lg = $('#projLogo');
       if (WS.logo) { lg.src = BASE + WS.logo; lg.hidden = false; } else lg.hidden = true;
+      items.forEach(i => i.def.id !== selId && pickedIds.has(i.def.id) && picked.add(i));
       const it = items.find(i => i.def.id === selId);
-      it ? select(it, true) : select(null, true);
+      select(it || null, true, picked.size > 0);
+      exportBtn.disabled = !items.length;
     }
 
-    /* ---------- VISTA ---------- */
+    /* ---------- VIEW ---------- */
     let saveT;
     let moveT;
     function apply() {
-      // will-change solo durante il movimento: da fermi Chrome ri-rasterizza e le tavole restano nitide
+      // will-change only while moving: at rest Chrome re-rasterizes and boards stay sharp
       world.style.willChange = 'transform';
       clearTimeout(moveT);
       moveT = setTimeout(() => { world.style.willChange = 'auto'; }, 150);
@@ -215,7 +225,7 @@
       const ease = t => 1 - Math.pow(1 - t, 3);
       const step = now => {
         const t = Math.min(1, (now - t0) / D), e = ease(t);
-        // interpola la scala in log-space per uno zoom naturale
+        // interpolate the scale in log space for a natural zoom
         view.s = Math.exp(Math.log(from.s) + (Math.log(target.s) - Math.log(from.s)) * e);
         view.x = from.x + (target.x - from.x) * e;
         view.y = from.y + (target.y - from.y) * e;
@@ -240,20 +250,31 @@
     }
     const fitAll = animate => zoomTo(bounds(), animate);
 
-    /* ---------- SELEZIONE ---------- */
-    function select(it, quiet) {
-      if (selected) { selected.el.classList.remove('selected'); selected.layerEl.classList.remove('active'); }
-      selected = it;
-      if (it) {
-        it.el.classList.add('selected');
-        it.layerEl.classList.add('active');
-        if (!quiet) it.layerEl.scrollIntoView({ block: 'nearest' });
+    /* ---------- SELECTION ---------- */
+    // additive = Shift/⌘-click: toggles `it` without dropping the rest
+    function select(it, quiet, additive) {
+      if (!additive) picked.clear();
+      if (it && additive && picked.has(it) && picked.size > 1) {
+        picked.delete(it);
+        if (selected === it) selected = [...picked].at(-1);
+      } else {
+        if (it) picked.add(it);
+        selected = it;
       }
-      setParam('b', it ? it.def.id : null); // l'URL è sempre un link alla tavola selezionata
-      openBtn.disabled = !it;
+      items.forEach(i => { i.el.classList.toggle('selected', picked.has(i)); i.layerEl.classList.toggle('active', picked.has(i)); });
+      if (selected && !quiet) selected.layerEl.scrollIntoView({ block: 'nearest' });
+      setParam('b', selected ? selected.def.id : null); // the URL always links to the selected board
+      openBtn.disabled = !selected;
       apply();
     }
-    const openSelected = () => selected && window.open(BASE + selected.def.src, '_blank');
+    const selectAll = () => items.forEach((it, i) => select(it, true, i > 0));
+    const openSelected = () => selected && window.open(
+      'view.html?p=' + encodeURIComponent(PROJECT.id) + '&b=' + encodeURIComponent(selected.def.id), '_blank');
+    const openExport = () => items.length && window.ATELIER_EXPORT.open({
+      projectName: WS.name || PROJECT.name, base: BASE,
+      groups: sections.map(s => ({ title: s.def.title, items: s.items.map(i => i.def) })),
+      checked: [...picked].map(i => i.def.id)
+    });
 
     function step(dir) {
       if (!items.length) return;
@@ -306,7 +327,9 @@
       if (!drag || e.pointerId !== drag.id) return;
       if (!drag.moved && e.button === 0) {
         const hit = document.elementsFromPoint(e.clientX, e.clientY).find(n => n.classList?.contains('item'));
-        select(hit ? items.find(i => i.el === hit) : null);
+        const it = hit ? items.find(i => i.el === hit) : null;
+        const add = e.shiftKey || e.metaKey || e.ctrlKey;
+        if (it || !add) select(it, false, add && !!it);
       }
       drag = null;
       viewport.classList.remove('panning');
@@ -317,7 +340,7 @@
     });
 
     window.addEventListener('keydown', e => {
-      if (e.target.closest('input, textarea, select, [contenteditable]')) return;
+      if (e.target.closest('input, textarea, select, [contenteditable]') || document.querySelector('dialog[open]')) return;
       const [cx, cy] = center();
       if (e.code === 'Space') { document.body.classList.add('space'); e.preventDefault(); return; }
       if (e.shiftKey && e.code === 'Digit1') return fitAll(true);
@@ -326,6 +349,8 @@
       if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) { e.preventDefault(); return zoomAt(1.25, cx, cy); }
       if ((e.metaKey || e.ctrlKey) && e.key === '-') { e.preventDefault(); return zoomAt(0.8, cx, cy); }
       if ((e.metaKey || e.ctrlKey) && e.key === '0') { e.preventDefault(); return zoomAt(1 / view.s, cx, cy); }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyE') { e.preventDefault(); return openExport(); }
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyA') { e.preventDefault(); return selectAll(); }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === '=' || e.key === '+') return zoomAt(1.25, cx, cy);
       if (e.key === '-') return zoomAt(0.8, cx, cy);
@@ -339,7 +364,7 @@
 
     /* ---------- TOP BAR ---------- */
     function toggleSidebar() {
-      // mantiene fermo il contenuto mentre il pannello entra/esce
+      // keeps the content still while the panel slides in/out
       const before = viewport.getBoundingClientRect().left;
       document.body.classList.toggle('no-sidebar');
       requestAnimationFrame(() => setTimeout(() => {
@@ -353,11 +378,12 @@
     $('#fitBtn').onclick = () => fitAll(true);
     $('#reloadBtn').onclick = () => { bust = Date.now(); render(); poll(); };
     openBtn.onclick = openSelected;
+    exportBtn.onclick = openExport;
     $('#hintClose').onclick = () => { $('#hint').remove(); try { localStorage.setItem('ws-hint-off', '1'); } catch {} };
     try { if (localStorage.getItem('ws-hint-off')) $('#hint').remove(); } catch {}
 
     /* ---------- LIVE RELOAD ---------- */
-    // rilegge manifest.js (fetch non funziona da file://, uno <script> sì)
+    // re-reads manifest.js (fetch doesn't work from file://, a <script> does)
     let sig = JSON.stringify(WS), polling = false;
     function poll() {
       if (polling || document.hidden) return;
@@ -369,7 +395,7 @@
         s.remove(); polling = false;
         const next = window.WORKSPACE;
         window.WORKSPACE = WS;
-        if (!next || !Array.isArray(next.sections)) return; // file a metà modifica: riprova al prossimo giro
+        if (!next || !Array.isArray(next.sections)) return; // file mid-edit: retry on the next tick
         const n = JSON.stringify(next);
         if (n !== sig) { sig = n; WS = next; build(); }
       };
@@ -377,7 +403,7 @@
     }
     setInterval(poll, 2000);
 
-    /* ---------- AVVIO ---------- */
+    /* ---------- STARTUP ---------- */
     if (window.innerWidth < 760) document.body.classList.add('no-sidebar');
     build();
     const saved = store.get(), deep = params.get('b');
