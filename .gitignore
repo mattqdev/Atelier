@@ -1,0 +1,6 @@
+.DS_Store
+# Placet local server discovery file (port + secret token)
+.placet/
+# I progetti restano locali: nel repo solo il programma + il progetto di esempio
+projects/*
+!projects/example/
