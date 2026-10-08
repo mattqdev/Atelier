@@ -33,7 +33,7 @@
   /* ---------- SERVER ---------- */
   let ping;
   const available = () => ping ||= /^https?:$/.test(location.protocol)
-    ? fetch('__atelier/ping').then(r => r.ok ? r.json() : {}).then(j => j.export ? 'ok' : 'nochrome').catch(() => 'noserver')
+    ? fetch('__atelier/ping').then(r => r.ok ? r.json().then(j => j.export ? 'ok' : 'nochrome') : 'noserver').catch(() => 'noserver')
     : Promise.resolve('noserver');
 
   async function render(base, def, scale, format) {

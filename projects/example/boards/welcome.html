@@ -11,14 +11,14 @@
   .page { width: 1080px; height: 1350px; padding: 110px; display: flex; flex-direction: column; justify-content: space-between;
           font: 32px/1.45 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); }
   h1 { font-size: 150px; line-height: .9; letter-spacing: -.04em; }
-  h1 span { color: var(--accent); }
+  h1 span { display: inline-block; width: .16em; height: .16em; margin-left: .05em; background: var(--accent); border-radius: .02em; }
   ol { padding-left: 1.2em; } li { margin: .3em 0; }
   code { font: 28px ui-monospace, Menlo, monospace; background: #fff; padding: 2px 10px; border-radius: 8px; }
 </style>
 </head>
 <body>
 <section class="page">
-  <h1>Atelier<span>.</span></h1>
+  <h1>Atelier<span></span></h1>
   <ol>
     <li>Create <code>projects/&lt;Name&gt;/</code></li>
     <li>Add <code>manifest.js</code> and the boards in <code>boards/</code></li>

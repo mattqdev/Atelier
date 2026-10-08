@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/brand/banner.png" alt="Atelier — the design canvas made of plain HTML files" width="100%"></p>
+
 # Atelier
 
 A static, multi-project, Figma-style design canvas. Every board is an HTML file (or an image) placed on an infinite plane with pan, zoom, layers and selection.
@@ -45,6 +47,10 @@ projects/<id>/assets/      css, logo, fonts
 ```
 
 Projects are local and not versioned (`projects/*` is in `.gitignore`), except `projects/example/`. To create one: copy `projects/example/`, rename it, register it in `projects/index.js`. Without `projects/index.js` Atelier opens the example project.
+
+## Brand
+
+Logo and launch assets live in [`docs/brand/`](docs/brand): `lockup.svg` / `lockup-white.svg`, `mark.svg` / `mark-white.svg`, `wordmark.svg`, `app-icon.svg` (also `app/atelier.svg`, the favicon), PNG renders (`app-icon-1024.png`, `lockup.png`, `lockup-dark.png`), `og-image.png` (1200×630) and `social-preview.png` (1280×640, for the GitHub repository settings). Please don't redraw, recolour or retype the logo.
 
 ## Contributing
 

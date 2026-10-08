@@ -15,7 +15,9 @@ app/view.js|css           → viewer logic and styles (view.css builds on app.cs
 app/export.js             → Figma-style export dialog, re-encoding (JPG/WEBP) and ZIP, shared by canvas and viewer
 app/i18n.js               → UI translations: picks the language and applies the strings
 app/locales/<code>.js     → dictionaries (en = reference, it)
-app/atelier.svg           → app icon
+app/atelier.svg           → app icon / favicon (same as docs/brand/app-icon.svg)
+app/atelier-touch.png     → apple-touch-icon, 180×180
+docs/brand/               → logo SVGs and PNG renders (README banner, social preview, OG). Rendered from the local brand project: don't edit by hand
 projects/index.js         → project registry: [{ id, name }] (local, gitignored)
 projects/<id>/manifest.js → SINGLE source of truth for what appears on that project's canvas
 projects/<id>/assets/     → project css/logo/fonts
