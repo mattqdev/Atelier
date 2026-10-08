@@ -9,6 +9,8 @@ Si apre con doppio clic su `Atelier.html` (funziona da `file://`). Il menu nella
 ```
 Atelier.html              → shell del canvas. Non contiene contenuti.
 app/app.js|css            → motore (pan/zoom, livelli, selezione, cambio progetto). Toccare solo per nuove funzioni.
+app/i18n.js               → traduzioni UI: sceglie la lingua e applica i testi
+app/locales/<code>.js     → dizionari (en = riferimento, it)
 app/atelier.svg           → icona dell'app
 projects/index.js         → registro progetti: [{ id, name }] (locale, gitignored)
 projects/<id>/manifest.js → UNICA fonte di verità su cosa appare sul canvas per quel progetto
@@ -20,6 +22,17 @@ projects/example/         → progetto demo, l'unico versionato
 ```
 
 Il repo GitHub (`mattqdev/atelier`, privato) contiene solo il programma: `projects/*` è in `.gitignore` tranne `example/`.
+
+## Lingue (i18n)
+
+Nessun testo dell'interfaccia va scritto a mano in `Atelier.html` o `app.js`: usare una chiave.
+- HTML: `data-i18n="chiave"` (testo), `data-i18n-title` (tooltip), `data-i18n-html` (markup fidato, es. `<kbd>`).
+- JS: `ATELIER_I18N.t('chiave', { var })`, con segnaposto `{var}` nel testo.
+- Ogni chiave nuova va aggiunta in **tutti** i file di `app/locales/`; `en.js` è il riferimento (fallback se manca una chiave).
+- Lingua scelta: `?lang=<code>` → ultima scelta (localStorage) → lingua del browser → `en`. Menu con il globo nella topbar.
+- Nuova lingua: copia `app/locales/en.js` in `<code>.js`, traduci, aggiungi lo `<script>` in `Atelier.html` prima di `app/i18n.js`.
+
+I contenuti dei progetti (tavole, nomi nel manifest) non passano dall'i18n.
 
 ## Nuovo progetto
 

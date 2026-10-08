@@ -7,8 +7,9 @@
    aggiungere contenuti: basta il manifest del progetto.
    ========================================================= */
 (() => {
+  const { t } = window.ATELIER_I18N;
   const PROJECTS = Array.isArray(window.ATELIER_PROJECTS) && window.ATELIER_PROJECTS.length
-    ? window.ATELIER_PROJECTS : [{ id: 'example', name: 'Esempio' }];
+    ? window.ATELIER_PROJECTS : [{ id: 'example', name: t('project.example') }];
   const LAST_KEY = 'atelier-last';
   const lastId = (() => { try { return localStorage.getItem(LAST_KEY); } catch { return null; } })();
   const wanted = new URLSearchParams(location.search).get('p');
@@ -33,7 +34,7 @@
   function notFound() {
     document.title = 'Atelier';
     document.querySelector('#viewport').insertAdjacentHTML('beforeend',
-      `<div class="empty-msg"><div><b>Progetto non trovato</b>Manca ${BASE}manifest.js</div></div>`);
+      `<div class="empty-msg"><div><b>${t('project.notFound')}</b>${t('project.missing', { path: BASE + 'manifest.js' })}</div></div>`);
   }
 
   function start(WS) {

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,37 +10,43 @@
 <body>
 
 <header class="topbar">
-  <button class="tb-btn" id="sidebarBtn" title="Livelli ( \ )">
+  <button class="tb-btn" id="sidebarBtn" data-i18n-title="layers.toggle">
     <svg viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M6 2.5v11"/></svg>
   </button>
   <div class="brand">
     <img class="app-icon" src="app/atelier.svg" alt="Atelier" title="Atelier">
     <span class="brand-sep">/</span>
     <img id="projLogo" alt="" hidden>
-    <label class="proj-pick" title="Cambia progetto">
+    <label class="proj-pick" data-i18n-title="project.change">
       <select id="projectSel"></select>
       <svg viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>
     </label>
   </div>
   <div class="spacer"></div>
-  <button class="tb-btn" id="reloadBtn" title="Ricarica le tavole">
+  <label class="proj-pick lang-pick">
+    <svg class="globe" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.75"/><path d="M2.25 8h11.5M8 2.25c-1.6 1.6-2.4 3.5-2.4 5.75S6.4 12.15 8 13.75M8 2.25c1.6 1.6 2.4 3.5 2.4 5.75S9.6 12.15 8 13.75"/></svg>
+    <select id="langSel"></select>
+    <svg viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>
+  </label>
+  <div class="sep"></div>
+  <button class="tb-btn" id="reloadBtn" data-i18n-title="reload">
     <svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.5M13 2.5v3h-3"/></svg>
   </button>
   <div class="sep"></div>
-  <button class="tb-btn" id="fitBtn" title="Adatta tutto (Shift+1)">
-    <svg viewBox="0 0 16 16"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span class="tb-label">Adatta</span>
+  <button class="tb-btn" id="fitBtn" data-i18n-title="fit">
+    <svg viewBox="0 0 16 16"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span class="tb-label" data-i18n="fit.label"></span>
   </button>
-  <button class="tb-btn" id="zoomOut" title="Zoom indietro (−)">−</button>
-  <button class="tb-btn zoom-val" id="zoomVal" title="Zoom al 100% (Shift+0)">100%</button>
-  <button class="tb-btn" id="zoomIn" title="Zoom avanti (+)">+</button>
+  <button class="tb-btn" id="zoomOut" data-i18n-title="zoom.out">−</button>
+  <button class="tb-btn zoom-val" id="zoomVal" data-i18n-title="zoom.reset">100%</button>
+  <button class="tb-btn" id="zoomIn" data-i18n-title="zoom.in">+</button>
   <div class="sep"></div>
-  <button class="tb-btn primary" id="openBtn" title="Apri la tavola selezionata (Invio)" disabled>
-    <svg viewBox="0 0 16 16"><path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg><span class="tb-label">Apri</span>
+  <button class="tb-btn primary" id="openBtn" data-i18n-title="open" disabled>
+    <svg viewBox="0 0 16 16"><path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg><span class="tb-label" data-i18n="open.label"></span>
   </button>
 </header>
 
 <aside class="sidebar">
-  <div class="sb-title">Livelli</div>
+  <div class="sb-title" data-i18n="layers.title"></div>
   <nav id="layers"></nav>
 </aside>
 
@@ -49,12 +55,13 @@
 </main>
 
 <div class="hint" id="hint">
-  <button id="hintClose" title="Chiudi">×</button>
-  <kbd>Trascina</kbd> o scroll per muoverti · <kbd>⌘</kbd>+scroll / pinch per zoom<br>
-  <kbd>Doppio clic</kbd> zoom sulla tavola · <kbd>←</kbd> <kbd>→</kbd> sfoglia · <kbd>Invio</kbd> apri<br>
-  <kbd>Shift+1</kbd> vedi tutto · <kbd>\</kbd> livelli
+  <button id="hintClose" data-i18n-title="hint.close">×</button>
+  <span data-i18n-html="hint.body"></span>
 </div>
 
+<script src="app/locales/en.js"></script>
+<script src="app/locales/it.js"></script>
+<script src="app/i18n.js"></script>
 <script src="projects/index.js" onerror="window.ATELIER_PROJECTS=null"></script>
 <script src="app/app.js"></script>
 </body>
