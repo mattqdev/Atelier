@@ -9,6 +9,9 @@
      id, title, note?, x?, y?
      items[]   → tavole affiancate da sinistra a destra
        id, title, type: "html" | "image", src, w, h
+       status? → "draft" | "review" | "approved" (badge sul canvas)
+       rev?    → numero da incrementare quando cambia il file:
+                 Atelier ricarica da solo solo quella tavola
    src relativi alla cartella del progetto; per html w/h = @page.
    ========================================================= */
 window.WORKSPACE = {

@@ -47,6 +47,13 @@ I contenuti dei progetti (tavole, nomi nel manifest) non passano dall'i18n.
 2. Ogni tavola: link al css del progetto con percorso relativo, `@page { size: Wpx Hpx; }`, un solo `<section class="page …">`. CSS specifico in un `<style>` locale.
 3. Aggiungi l'item nel manifest (`id`, `title`, `type: "html"|"image"`, `src`, `w`, `h`). `src` è relativo alla cartella del progetto; `w/h` devono coincidere con `@page`.
 4. Immagini (png/jpg) si aggiungono direttamente con `type: "image"`, senza file HTML.
+5. Campi opzionali dell'item: `status: "draft"|"review"|"approved"` (badge sul canvas e nei livelli) e `rev`.
+
+## Live reload
+
+Atelier rilegge `manifest.js` ogni 2 s: modifiche al manifest appaiono da sole, senza ricaricare. Il contenuto di una tavola invece non viene rilevato: **dopo aver modificato un file di tavola, incrementa `rev` del suo item** (es. `rev: 2`) e Atelier ricarica solo quell'iframe. Il pulsante ricarica della topbar ricarica tutte le tavole.
+
+Link: `Atelier.html?p=<id>&b=<itemId>` apre il progetto zoomato su quella tavola (l'URL si aggiorna da solo con la selezione).
 
 Le sezioni si impilano in verticale in ordine; le tavole si affiancano da sinistra a destra. `x`/`y` su una sezione solo se serve una posizione fissa.
 

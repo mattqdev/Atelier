@@ -5,14 +5,24 @@
    projects/<id>/manifest.js (window.WORKSPACE), poi dispone
    sezioni e tavole. Non serve modificare questo file per
    aggiungere contenuti: basta il manifest del progetto.
+   Il manifest viene riletto ogni 2 s: le modifiche appaiono da
+   sole; un item con `rev` cambiato ricarica solo la sua tavola.
    ========================================================= */
 (() => {
   const { t } = window.ATELIER_I18N;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const params = new URLSearchParams(location.search);
+  const setParam = (k, v) => {
+    const q = new URLSearchParams(location.search);
+    v == null ? q.delete(k) : q.set(k, v);
+    const s = q.toString();
+    history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + location.hash);
+  };
   const PROJECTS = Array.isArray(window.ATELIER_PROJECTS) && window.ATELIER_PROJECTS.length
     ? window.ATELIER_PROJECTS : [{ id: 'example', name: t('project.example') }];
   const LAST_KEY = 'atelier-last';
   const lastId = (() => { try { return localStorage.getItem(LAST_KEY); } catch { return null; } })();
-  const wanted = new URLSearchParams(location.search).get('p');
+  const wanted = params.get('p');
   const PROJECT = PROJECTS.find(p => p.id === wanted)
     || (!wanted && PROJECTS.find(p => p.id === lastId))
     || (wanted ? { id: wanted, name: wanted } : PROJECTS[0]);
@@ -21,7 +31,7 @@
 
   const sel = document.querySelector('#projectSel');
   const listed = PROJECTS.some(p => p.id === PROJECT.id) ? PROJECTS : [...PROJECTS, PROJECT];
-  sel.innerHTML = listed.map(p => `<option value="${p.id}">${p.name || p.id}</option>`).join('');
+  sel.innerHTML = listed.map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join('');
   sel.value = PROJECT.id;
   sel.onchange = () => { location.search = '?p=' + encodeURIComponent(sel.value); };
 
@@ -39,6 +49,7 @@
 
   function start(WS) {
     try { localStorage.setItem(LAST_KEY, PROJECT.id); } catch {}
+    if (!wanted) setParam('p', PROJECT.id); // il link copiato riapre questo progetto
     const LAYOUT = { sectionPad: 80, itemGap: 80, sectionGap: 220 };
     const ZOOM_MIN = 0.02, ZOOM_MAX = 4;
 
@@ -47,9 +58,10 @@
     const zoomVal = $('#zoomVal'), openBtn = $('#openBtn');
 
     const view = { x: 0, y: 0, s: 1 };
-    const items = [];      // { def, section, x, y, w, h, el, layerEl }
-    const sections = [];   // { def, x, y, w, h, el, layerEl }
-    let selected = null;
+    let items = [];        // { def, section, x, y, w, h, el, layerEl }
+    let sections = [];     // { def, x, y, w, h, items }
+    const frames = new Map(); // chiave item → { el, type, url } (riusati tra un rebuild e l'altro)
+    let selected = null, bust = 0;
 
     const store = {
       get() { try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; } },
@@ -58,13 +70,14 @@
 
     /* ---------- LAYOUT ---------- */
     function layout() {
+      items = []; sections = [];
       let cursorY = 0;
       const P = LAYOUT.sectionPad;
-      WS.sections.forEach(sec => {
+      (WS.sections || []).forEach(sec => {
         const sx = sec.x ?? 0, sy = sec.y ?? cursorY;
         let x = sx + P, maxH = 0;
         const secItems = [];
-        sec.items.forEach(def => {
+        (sec.items || []).forEach(def => {
           const it = { def, section: sec.id, x, y: sy + P, w: def.w, h: def.h };
           items.push(it); secItems.push(it);
           x += def.w + LAYOUT.itemGap;
@@ -83,16 +96,28 @@
       html: '<svg class="ic" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>',
       image: '<svg class="ic" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1"/><circle cx="6" cy="6.5" r="1.2"/><path d="M2.5 12l3.5-3.5 2.5 2.5 2-2 3 3"/></svg>'
     };
-    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const STATUS = ['draft', 'review', 'approved'];
+    const badge = st => st
+      ? `<span class="status st-${STATUS.includes(st) ? st : 'other'}">${esc(STATUS.includes(st) ? t('status.' + st) : st)}</span>` : '';
+    const srcOf = d => {
+      const q = new URLSearchParams();
+      if (d.rev != null) q.set('rev', d.rev);
+      if (bust) q.set('v', bust);
+      const s = q.toString();
+      return BASE + d.src + (s ? '?' + s : '');
+    };
 
     function render() {
+      world.querySelectorAll('.section, .empty-msg').forEach(n => n.remove());
+      viewport.querySelector('.empty-msg')?.remove();
+      layers.innerHTML = '';
+      const keep = new Set();
       sections.forEach(sec => {
         const el = document.createElement('div');
         el.className = 'section';
         Object.assign(el.style, { left: sec.x + 'px', top: sec.y + 'px', width: sec.w + 'px', height: sec.h + 'px' });
         el.innerHTML = `<div class="section-title">${esc(sec.def.title)}${sec.def.note ? `<small>${esc(sec.def.note)}</small>` : ''}</div>`;
-        world.appendChild(el);
-        sec.el = el;
+        world.prepend(el); // le sezioni restano sotto le tavole
 
         const lb = document.createElement('button');
         lb.className = 'layer l-section';
@@ -101,31 +126,66 @@
         layers.appendChild(lb);
 
         sec.items.forEach(it => {
-          const d = it.def;
-          const ie = document.createElement('div');
-          ie.className = 'item';
+          const d = it.def, url = srcOf(d);
+          let key = d.id;
+          while (keep.has(key)) key += '*'; // id duplicati: non perdere la tavola
+          keep.add(key);
+          let f = frames.get(key);
+          if (!f || f.type !== d.type) {
+            f?.el.remove();
+            const ie = document.createElement('div');
+            ie.className = 'item';
+            ie.innerHTML = `<div class="item-label"></div><div class="item-frame">${d.type === 'image'
+              ? `<img src="${esc(url)}" draggable="false">`
+              : `<iframe src="${esc(url)}" tabindex="-1" scrolling="no"></iframe>`}</div>`;
+            world.appendChild(ie);
+            f = { el: ie, type: d.type, url };
+            frames.set(key, f);
+          } else if (f.url !== url) {
+            f.el.querySelector('iframe, img').src = url;
+            f.url = url;
+          }
+          const ie = f.el, media = ie.querySelector('iframe, img');
           ie.dataset.id = d.id;
           Object.assign(ie.style, { left: it.x + 'px', top: it.y + 'px', width: it.w + 'px', height: it.h + 'px' });
-          const content = d.type === 'image'
-            ? `<img src="${esc(BASE + d.src)}" alt="${esc(d.title)}" draggable="false">`
-            : `<iframe src="${esc(BASE + d.src)}" title="${esc(d.title)}" tabindex="-1" scrolling="no"></iframe>`;
-          ie.innerHTML = `<div class="item-label">${esc(d.title)}</div><div class="item-frame">${content}</div>`;
-          world.appendChild(ie);
+          ie.querySelector('.item-label').innerHTML = esc(d.title) + badge(d.status);
+          d.type === 'image' ? (media.alt = d.title) : (media.title = d.title);
           it.el = ie;
 
           const li = document.createElement('button');
           li.className = 'layer l-item';
-          li.innerHTML = `${ICONS[d.type] || ICONS.html}<span>${esc(d.title)}</span>`;
+          li.innerHTML = `${ICONS[d.type] || ICONS.html}<span>${esc(d.title)}</span>${d.status ? `<i class="dot st-${STATUS.includes(d.status) ? d.status : 'other'}" title="${esc(STATUS.includes(d.status) ? t('status.' + d.status) : d.status)}"></i>` : ''}`;
           li.onclick = () => { select(it); zoomTo(it, true); };
           layers.appendChild(li);
           it.layerEl = li;
         });
       });
+      frames.forEach((f, key) => { if (!keep.has(key)) { f.el.remove(); frames.delete(key); } });
+      if (!items.length) viewport.insertAdjacentHTML('beforeend',
+        `<div class="empty-msg"><div><b>${esc(t('project.empty'))}</b>${esc(t('project.emptyHint'))}</div></div>`);
+    }
+
+    // ricostruisce il canvas dal manifest mantenendo vista e selezione
+    function build() {
+      const selId = selected?.def.id;
+      selected = null;
+      layout();
+      render();
+      document.title = (WS.name || PROJECT.name) + ' — Atelier';
+      const lg = $('#projLogo');
+      if (WS.logo) { lg.src = BASE + WS.logo; lg.hidden = false; } else lg.hidden = true;
+      const it = items.find(i => i.def.id === selId);
+      it ? select(it, true) : select(null, true);
     }
 
     /* ---------- VISTA ---------- */
     let saveT;
+    let moveT;
     function apply() {
+      // will-change solo durante il movimento: da fermi Chrome ri-rasterizza e le tavole restano nitide
+      world.style.willChange = 'transform';
+      clearTimeout(moveT);
+      moveT = setTimeout(() => { world.style.willChange = 'auto'; }, 150);
       world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`;
       world.style.setProperty('--inv', 1 / view.s);
       zoomVal.textContent = Math.round(view.s * 100) + '%';
@@ -173,6 +233,7 @@
     }
 
     function bounds() {
+      if (!sections.length) return { x: 0, y: 0, w: 1000, h: 1000 };
       const xs = sections.flatMap(s => [s.x, s.x + s.w]), ys = sections.flatMap(s => [s.y - 40, s.y + s.h]);
       const x = Math.min(...xs), y = Math.min(...ys);
       return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
@@ -180,20 +241,22 @@
     const fitAll = animate => zoomTo(bounds(), animate);
 
     /* ---------- SELEZIONE ---------- */
-    function select(it) {
+    function select(it, quiet) {
       if (selected) { selected.el.classList.remove('selected'); selected.layerEl.classList.remove('active'); }
       selected = it;
       if (it) {
         it.el.classList.add('selected');
         it.layerEl.classList.add('active');
-        it.layerEl.scrollIntoView({ block: 'nearest' });
+        if (!quiet) it.layerEl.scrollIntoView({ block: 'nearest' });
       }
+      setParam('b', it ? it.def.id : null); // l'URL è sempre un link alla tavola selezionata
       openBtn.disabled = !it;
       apply();
     }
     const openSelected = () => selected && window.open(BASE + selected.def.src, '_blank');
 
     function step(dir) {
+      if (!items.length) return;
       const i = selected ? items.indexOf(selected) : -1;
       const next = items[(i + dir + items.length) % items.length];
       select(next); zoomTo(next, true);
@@ -241,7 +304,7 @@
     });
     viewport.addEventListener('pointerup', e => {
       if (!drag || e.pointerId !== drag.id) return;
-      if (!drag.moved) {
+      if (!drag.moved && e.button === 0) {
         const hit = document.elementsFromPoint(e.clientX, e.clientY).find(n => n.classList?.contains('item'));
         select(hit ? items.find(i => i.el === hit) : null);
       }
@@ -254,7 +317,7 @@
     });
 
     window.addEventListener('keydown', e => {
-      if (e.target.closest('input, textarea')) return;
+      if (e.target.closest('input, textarea, select, [contenteditable]')) return;
       const [cx, cy] = center();
       if (e.code === 'Space') { document.body.classList.add('space'); e.preventDefault(); return; }
       if (e.shiftKey && e.code === 'Digit1') return fitAll(true);
@@ -288,19 +351,40 @@
     $('#zoomIn').onclick = () => zoomAt(1.25, ...center());
     zoomVal.onclick = () => zoomAt(1 / view.s, ...center());
     $('#fitBtn').onclick = () => fitAll(true);
-    $('#reloadBtn').onclick = () => location.reload();
+    $('#reloadBtn').onclick = () => { bust = Date.now(); render(); poll(); };
     openBtn.onclick = openSelected;
     $('#hintClose').onclick = () => { $('#hint').remove(); try { localStorage.setItem('ws-hint-off', '1'); } catch {} };
     try { if (localStorage.getItem('ws-hint-off')) $('#hint').remove(); } catch {}
 
+    /* ---------- LIVE RELOAD ---------- */
+    // rilegge manifest.js (fetch non funziona da file://, uno <script> sì)
+    let sig = JSON.stringify(WS), polling = false;
+    function poll() {
+      if (polling || document.hidden) return;
+      polling = true;
+      window.WORKSPACE = null;
+      const s = document.createElement('script');
+      s.src = BASE + 'manifest.js?t=' + Date.now();
+      s.onload = s.onerror = () => {
+        s.remove(); polling = false;
+        const next = window.WORKSPACE;
+        window.WORKSPACE = WS;
+        if (!next || !Array.isArray(next.sections)) return; // file a metà modifica: riprova al prossimo giro
+        const n = JSON.stringify(next);
+        if (n !== sig) { sig = n; WS = next; build(); }
+      };
+      document.head.appendChild(s);
+    }
+    setInterval(poll, 2000);
+
     /* ---------- AVVIO ---------- */
-    document.title = WS.name + ' — Atelier';
-    if (WS.logo) { const lg = $('#projLogo'); lg.src = BASE + WS.logo; lg.hidden = false; }
     if (window.innerWidth < 760) document.body.classList.add('no-sidebar');
-    layout();
-    render();
-    const saved = store.get();
-    if (saved && Number.isFinite(saved.s)) {
+    build();
+    const saved = store.get(), deep = params.get('b');
+    const target = deep && items.find(i => i.def.id === deep);
+    if (target && saved?.sel !== deep) {
+      select(target); zoomTo(target, false);
+    } else if (saved && Number.isFinite(saved.s)) {
       Object.assign(view, { x: saved.x, y: saved.y, s: saved.s });
       const it = items.find(i => i.def.id === saved.sel);
       it ? select(it) : apply();

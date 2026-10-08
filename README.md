@@ -4,7 +4,9 @@ Canvas di design stile Figma, statico e multi-progetto. Ogni tavola è un file H
 
 - **Apri**: doppio clic su `Atelier.html` (funziona da `file://`, niente server né build).
 - **Cambia progetto**: menu nella topbar, oppure `Atelier.html?p=<id>`.
-- **Comandi**: trascina/scroll per muoverti · ⌘+scroll o pinch per lo zoom · doppio clic zoom sulla tavola · ←/→ sfoglia · Invio apre · Shift+1 vedi tutto · `\` livelli.
+- **Comandi**: trascina/scroll per muoverti · ⌘+scroll o pinch per lo zoom · doppio clic zoom sulla tavola · ←/→ sfoglia · Invio apre · Shift+1 vedi tutto · Shift+2 zoom sulla selezione · `\` livelli.
+- **Link a una tavola**: `Atelier.html?p=<id>&b=<itemId>` (l'URL segue la selezione).
+- **Live reload**: il manifest viene riletto ogni 2 s; incrementa `rev` su un item per ricaricarne la tavola.
 
 ## Progetti
 

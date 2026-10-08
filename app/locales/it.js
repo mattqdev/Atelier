@@ -7,8 +7,13 @@
   "project.example": "Esempio",
   "project.notFound": "Progetto non trovato",
   "project.missing": "Manca {path}",
+  "project.empty": "Ancora nessuna tavola",
+  "project.emptyHint": "Aggiungi sezioni e tavole in manifest.js",
   "lang.change": "Lingua",
   "reload": "Ricarica le tavole",
+  "status.draft": "Bozza",
+  "status.review": "In revisione",
+  "status.approved": "Approvata",
   "fit": "Adatta tutto (Shift+1)",
   "fit.label": "Adatta",
   "zoom.out": "Zoom indietro (−)",
@@ -19,5 +24,5 @@
   "hint.close": "Chiudi",
   "hint.body": "<kbd>Trascina</kbd> o scroll per muoverti · <kbd>⌘</kbd>+scroll / pinch per zoom<br>"
     + "<kbd>Doppio clic</kbd> zoom sulla tavola · <kbd>←</kbd> <kbd>→</kbd> sfoglia · <kbd>Invio</kbd> apri<br>"
-    + "<kbd>Shift+1</kbd> vedi tutto · <kbd>\\</kbd> livelli"
+    + "<kbd>Shift+1</kbd> vedi tutto · <kbd>Shift+2</kbd> zoom selezione · <kbd>Shift+0</kbd> 100% · <kbd>\\</kbd> livelli"
 };
