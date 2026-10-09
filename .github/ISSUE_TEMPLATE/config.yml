@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/mattqdev/atelier/discussions
+    about: Ask for help or float an idea before opening an issue.
+  - name: Read the docs
+    url: https://github.com/mattqdev/atelier#readme
+    about: How to open Atelier, create projects, add boards and export.
+  - name: Contributing guide
+    url: https://github.com/mattqdev/atelier/blob/main/CONTRIBUTING.md
+    about: Ground rules, setup and how to verify a change.

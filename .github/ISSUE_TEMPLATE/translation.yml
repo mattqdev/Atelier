@@ -1,0 +1,25 @@
+name: Translation
+description: Add a new UI language or fix an existing translation.
+labels: ["i18n"]
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: German (de)
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type
+      options:
+        - New language
+        - Fix in an existing language
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: For fixes, list the key, the current text and the proposed text. For a new language, tell us if you'll open the PR yourself (see "Adding a language" in CONTRIBUTING.md).

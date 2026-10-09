@@ -4,6 +4,8 @@
 
 A static, multi-project, Figma-style design canvas. Every board is an HTML file (or an image) placed on an infinite plane with pan, zoom, layers and selection.
 
+<p align="center"><img src="docs/demo.gif" alt="Atelier: browsing a project on the canvas, zooming into boards and opening one in the viewer" width="100%"></p>
+
 - **Open**: double-click `Atelier.html` (works from `file://`, no server or build step).
 - **Switch project**: menu in the top bar, or `Atelier.html?p=<id>`.
 - **Controls**: drag/scroll to move · ⌘+scroll or pinch to zoom · double-click zooms to a board · Shift/⌘+click multi-select · ⌘A select all · ←/→ browse · Enter opens · Shift+1 fit all · Shift+2 fit selection · ⇧⌘E export · `\` layers.
@@ -54,4 +56,10 @@ Logo and launch assets live in [`docs/brand/`](docs/brand): `lockup.svg` / `lock
 
 ## Contributing
 
-See [CLAUDE.md](CLAUDE.md) for the structure, conventions (i18n, manifest fields) and how to verify changes.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules and how to open a PR, and [CLAUDE.md](CLAUDE.md) for the structure, conventions (i18n, manifest fields) and how to verify changes.
+
+Please read the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately as described in [SECURITY.md](SECURITY.md); questions and ideas go to [Discussions](https://github.com/mattqdev/atelier/discussions).
+
+## License
+
+[MIT](LICENSE) © 2026 MattQ

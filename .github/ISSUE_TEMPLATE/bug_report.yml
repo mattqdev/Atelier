@@ -1,0 +1,65 @@
+name: Bug report
+description: Something on the canvas, viewer or export doesn't work as expected.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting. Please check [existing issues](https://github.com/mattqdev/atelier/issues) first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected to see instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Atelier.html?p=example
+        2. Select the board "Welcome"
+        3. Press ⇧⌘E and export as PDF
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Canvas (pan, zoom, selection, layers)
+        - Viewer
+        - Export
+        - Local server (atelier.py)
+        - Live reload / manifest
+        - Translations
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: opened
+    attributes:
+      label: How did you open Atelier?
+      options:
+        - Double-click (file://)
+        - python3 atelier.py (http://localhost)
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 131 on macOS 15.1
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output or server log
+      description: Paste any errors from the browser console or the atelier.py terminal.
+      render: text
+  - type: textarea
+    id: screens
+    attributes:
+      label: Screenshots
+      description: Drag images here. A minimal board or manifest that reproduces the problem helps a lot.

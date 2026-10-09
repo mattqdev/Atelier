@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an improvement to Atelier.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How you'd like it to work. Mock-ups and examples welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Fits Atelier's ground rules
+      description: See [CONTRIBUTING.md](https://github.com/mattqdev/atelier/blob/main/CONTRIBUTING.md#ground-rules).
+      options:
+        - label: Needs no build step and no new dependencies
+          required: true
+        - label: Keeps Atelier working from file://
+          required: true
+  - type: dropdown
+    id: help
+    attributes:
+      label: Would you like to work on it?
+      options:
+        - "Yes, I can open a PR"
+        - "Maybe, with some guidance"
+        - "No"

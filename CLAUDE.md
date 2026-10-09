@@ -17,6 +17,8 @@ app/i18n.js               → UI translations: picks the language and applies th
 app/locales/<code>.js     → dictionaries (en = reference, it)
 app/atelier.svg           → app icon / favicon (same as docs/brand/app-icon.svg)
 app/atelier-touch.png     → apple-touch-icon, 180×180
+docs/demo.gif             → README demo (frames captured from the app, assembled with ffmpeg)
+.github/                  → CI (workflows/ci.yml + scripts/check.mjs: i18n parity, example manifest, headless smoke/export), issue & PR templates
 docs/brand/               → logo SVGs and PNG renders (README banner, social preview, OG). Rendered from the local brand project: don't edit by hand
 projects/index.js         → project registry: [{ id, name }] (local, gitignored)
 projects/<id>/manifest.js → SINGLE source of truth for what appears on that project's canvas
@@ -72,6 +74,8 @@ Sections stack vertically in order; boards sit side by side left to right. Use `
 Export (⇧⌘E on the canvas and in the viewer) needs `python3 atelier.py`: the page must be served over http so it can call `/__atelier/render`, which runs headless Chrome (`--screenshot` with `--force-device-scale-factor` for PNG, `--print-to-pdf` for PDF). JPG/WEBP are re-encoded in the browser; multiple files are zipped in the browser. Opened from `file://`, the dialog explains how to start the server; the viewer's print / save as PDF works without it.
 
 ## Verification
+
+Run `node .github/scripts/check.mjs` (i18n keys/placeholders in every locale, locale scripts loaded, example manifest sizes); CI runs it plus a headless smoke and export test on every push and PR.
 
 After changes, take a headless screenshot to check:
 ```
