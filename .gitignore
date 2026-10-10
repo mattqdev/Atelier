@@ -4,3 +4,5 @@
 # Projects stay local: the repo holds only the program + the example project
 projects/*
 !projects/example/
+# Python bytecode
+__pycache__/
