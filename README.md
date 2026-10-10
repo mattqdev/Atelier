@@ -4,6 +4,8 @@
 
 A static, multi-project, Figma-style design canvas. Every board is an HTML file (or an image) placed on an infinite plane with pan, zoom, layers and selection.
 
+<p align="center"><img src="docs/how-it-works.gif" alt="How Atelier works: ask Claude for a design, it writes an HTML board that appears on the canvas, ask for changes and the board updates live, then export PNG, JPG or PDF" width="100%"></p>
+
 <p align="center"><img src="docs/demo.gif" alt="Atelier: browsing a project on the canvas, zooming into boards and opening one in the viewer" width="100%"></p>
 
 - **Open**: double-click `Atelier.html` (works from `file://`, no server or build step).

@@ -18,6 +18,7 @@ app/locales/<code>.js     → dictionaries (en = reference, it)
 app/atelier.svg           → app icon / favicon (same as docs/brand/app-icon.svg)
 app/atelier-touch.png     → apple-touch-icon, 180×180
 docs/demo.gif             → README demo (frames captured from the app, assembled with ffmpeg)
+docs/how-it-works.gif     → README explainer (ask → Claude designs → tweak → export), animated HTML scene rendered with headless Chrome + ffmpeg
 .github/                  → CI (workflows/ci.yml + scripts/check.mjs: i18n parity, example manifest, headless smoke/export), issue & PR templates
 docs/brand/               → logo SVGs and PNG renders (README banner, social preview, OG). Rendered from the local brand project: don't edit by hand
 projects/index.js         → project registry: [{ id, name }] (local, gitignored)
