@@ -9,7 +9,7 @@ Open it by double-clicking `Atelier.html` (works from `file://`). The top-bar me
 ```
 Atelier.html              → canvas shell. Holds no content.
 view.html                 → single-board viewer (opened by "Open"): fit, zoom, browse, print, export
-atelier.py                → optional local server (stdlib only): serves the folder, renders exports with headless Chrome
+atelier.py                → optional local server (stdlib only): serves the folder, renders exports with headless Chrome; `--install-launcher` creates a one-click app (macOS/Linux/Windows)
 app/app.js|css            → canvas engine (pan/zoom, layers, selection, project switch). Touch only for new features.
 app/view.js|css           → viewer logic and styles (view.css builds on app.css)
 app/export.js             → Figma-style export dialog, re-encoding (JPG/WEBP) and ZIP, shared by canvas and viewer
@@ -17,6 +17,7 @@ app/i18n.js               → UI translations: picks the language and applies th
 app/locales/<code>.js     → dictionaries (en = reference, it)
 app/atelier.svg           → app icon / favicon (same as docs/brand/app-icon.svg)
 app/atelier-touch.png     → apple-touch-icon, 180×180
+app/atelier.ico           → Windows launcher icon (16–256 px, from docs/brand/app-icon-1024.png)
 docs/demo.gif             → README demo (frames captured from the app, assembled with ffmpeg)
 docs/how-it-works.gif     → README explainer (ask → Claude designs → tweak → export), animated HTML scene rendered with headless Chrome + ffmpeg
 .github/                  → CI (workflows/ci.yml + scripts/check.mjs: i18n parity, example manifest, headless smoke/export), issue & PR templates

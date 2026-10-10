@@ -8,6 +8,20 @@ A static, multi-project, Figma-style design canvas. Every board is an HTML file 
 
 <p align="center"><img src="docs/demo.gif" alt="Atelier: browsing a project on the canvas, zooming into boards and opening one in the viewer" width="100%"></p>
 
+## Quick start
+
+Needs [Python 3](https://www.python.org/downloads/) and Chrome (or Chromium, Edge, Brave) for exports. No build, no dependencies.
+
+```
+git clone https://github.com/mattqdev/Atelier.git
+cd Atelier
+python3 atelier.py --install-launcher
+```
+
+That adds an **Atelier** app to your system (macOS: `~/Applications`, Linux: applications menu, Windows: Start menu). Click it to start the local server and open the canvas. Then open the folder with [Claude Code](https://claude.com/claude-code) and ask it to design: it writes the boards, Atelier shows them live. No git? Download the zip of the [latest release](https://github.com/mattqdev/Atelier/releases/latest) instead. On Windows use `python` instead of `python3`.
+
+## Using it
+
 - **Open**: double-click `Atelier.html` (works from `file://`, no server or build step).
 - **Switch project**: menu in the top bar, or `Atelier.html?p=<id>`.
 - **Controls**: drag/scroll to move · ⌘+scroll or pinch to zoom · double-click zooms to a board · Shift/⌘+click multi-select · ⌘A select all · ←/→ browse · Enter opens · Shift+1 fit all · Shift+2 fit selection · ⇧⌘E export · `\` layers.
@@ -40,6 +54,14 @@ python3 atelier.py --port 8000 --no-open
 ```
 
 Chrome/Chromium/Edge/Brave are auto-detected; set `ATELIER_CHROME=/path/to/chrome` otherwise. Everything else keeps working from `file://` without the server.
+
+### One-click launcher
+
+```
+python3 atelier.py --install-launcher
+```
+
+Creates an **Atelier** app bound to this folder: `~/Applications/Atelier.app` on macOS (drag it to the Dock or open it from Spotlight), an applications-menu entry on Linux, a Start menu shortcut on Windows (pin it to the taskbar). One click starts the server in the background if it isn't running and opens Atelier in the browser. Run the command again if you move the folder. On macOS the server log is `~/Library/Logs/Atelier.log`; stop the server with `pkill -f atelier.py`.
 
 ## Projects
 

@@ -60,3 +60,41 @@ jobs:
         with:
           name: screenshots
           path: shots/
+
+  launcher:
+    name: Launcher (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install launcher
+        run: python atelier.py --install-launcher
+      - name: Check macOS app
+        if: runner.os == 'macOS'
+        run: |
+          app="$HOME/Applications/Atelier.app/Contents"
+          test -x "$app/MacOS/Atelier" && test -s "$app/Resources/Atelier.icns" && plutil -lint "$app/Info.plist"
+          bash -n "$app/MacOS/Atelier"
+      - name: Check Linux desktop entry
+        if: runner.os == 'Linux'
+        run: grep -q '^Exec=.*atelier.py' "$HOME/.local/share/applications/atelier.desktop"
+      - name: Check Windows shortcut
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Atelier.lnk'
+          $s = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          if (-not (Test-Path $s.TargetPath) -or $s.Arguments -notmatch 'atelier.py') { exit 1 }
+      - name: Server starts and a second launch reuses it
+        shell: bash
+        run: |
+          python atelier.py --no-open --port 4747 &
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:4747/__atelier/ping && break; sleep 0.5; done
+          python atelier.py --no-open --port 4747 | grep -q 'already running'
