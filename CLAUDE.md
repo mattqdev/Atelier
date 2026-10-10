@@ -2,15 +2,18 @@
 
 Personal Figma-style design tool: a static, multi-project HTML canvas maintained by Claude. It replaces Figma/Paper/Trello. No MCP, no build step, no dependencies (projects may use Google Fonts).
 
-Open it by double-clicking `Atelier.html` (works from `file://`). The top-bar menu switches project; `Atelier.html?p=<id>` opens a specific one.
+Open it by double-clicking `Atelier.html` (works from `file://`). The project menu in the top bar switches project and links to `projects.html` (all projects as cards); `Atelier.html?p=<id>` opens a specific one.
 
 ## Structure
 
 ```
 Atelier.html              → canvas shell. Holds no content.
 view.html                 → single-board viewer (opened by "Open"): fit, zoom, browse, print, export
+projects.html             → all projects as cards (mini canvas, counts, last opened), from "All projects" in the project menu
 atelier.py                → optional local server (stdlib only): serves the folder, renders exports with headless Chrome; `--install-launcher` creates a one-click app (macOS/Linux/Windows)
-app/app.js|css            → canvas engine (pan/zoom, layers, selection, project switch). Touch only for new features.
+app/app.js|css            → canvas engine (pan/zoom, layers, selection). Touch only for new features.
+app/projects.js           → project registry shared by canvas and projects page: queued manifest reads, counts, last opened, top-bar project menu
+app/home.js|css           → projects page logic and styles (home.css builds on app.css)
 app/view.js|css           → viewer logic and styles (view.css builds on app.css)
 app/export.js             → Figma-style export dialog, re-encoding (JPG/WEBP) and ZIP, shared by canvas and viewer
 app/i18n.js               → UI translations: picks the language and applies the strings
@@ -37,12 +40,12 @@ Code comments and contributor docs are written in English.
 
 ## Languages (i18n)
 
-No UI text is hard-coded in `Atelier.html`, `view.html` or the JS: use a key.
+No UI text is hard-coded in `Atelier.html`, `view.html`, `projects.html` or the JS: use a key.
 - HTML: `data-i18n="key"` (text), `data-i18n-title` (tooltip), `data-i18n-html` (trusted markup, e.g. `<kbd>`).
 - JS: `ATELIER_I18N.t('key', { var })`, with `{var}` placeholders in the string.
 - Every new key goes into **all** files in `app/locales/`; `en.js` is the reference (fallback when a key is missing).
 - Language: `?lang=<code>` → last choice (localStorage) → browser language → `en`. Globe menu in the top bar.
-- New language: copy `app/locales/en.js` to `<code>.js`, translate it, add its `<script>` to `Atelier.html` and `view.html` before `app/i18n.js`.
+- New language: copy `app/locales/en.js` to `<code>.js`, translate it, add its `<script>` to `Atelier.html`, `view.html` and `projects.html` before `app/i18n.js`.
 
 Project content (boards, names in the manifest) does not go through i18n.
 
@@ -60,6 +63,7 @@ Project content (boards, names in the manifest) does not go through i18n.
 3. Add the item to the manifest (`id`, `title`, `type: "html"|"image"`, `src`, `w`, `h`). `src` is relative to the project folder; `w/h` must match `@page` (export and PDF rely on it).
 4. Images (png/jpg) are added directly with `type: "image"`, no HTML file.
 5. Optional item fields: `status: "draft"|"review"|"approved"` (badge on the canvas and in the layers) and `rev`.
+6. Optional manifest field `cover: "<itemId>"`: the board shown on the project's card in `projects.html` (default: the first boards of the first section).
 
 The board `title` is also the exported file name.
 
@@ -84,5 +88,5 @@ After changes, take a headless screenshot to check:
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
   --window-size=W,H --virtual-time-budget=5000 --screenshot=out.png "file://$PWD/<file>.html"
 ```
-For the whole workspace use `Atelier.html?p=<id>` at 1600×1000; for the viewer `view.html?p=<id>&b=<itemId>`.
+For the whole workspace use `Atelier.html?p=<id>` at 1600×1000; for the viewer `view.html?p=<id>&b=<itemId>`; for the projects page `projects.html`.
 Don't pass `--user-data-dir` to headless Chrome: it writes the file but never exits.

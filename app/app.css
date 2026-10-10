@@ -42,6 +42,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 .proj-pick select:focus-visible { box-shadow: 0 0 0 2px var(--ui-accent); border-radius: 6px; }
 .proj-pick svg { position: absolute; right: 7px; width: 14px; height: 14px; pointer-events: none; stroke: var(--ui-muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.proj-btn {
+  display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 6px 0 8px; border-radius: 6px;
+  font-weight: 600; max-width: 260px;
+}
+.proj-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proj-btn:hover, .proj-btn.open { background: var(--ui-hover); }
+.proj-btn:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: -2px; }
+.proj-btn svg { width: 14px; height: 14px; flex: none; stroke: var(--ui-muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s ease; }
+.proj-btn.open svg { transform: rotate(180deg); }
 .lang-pick select { font-weight: 500; padding-left: 28px; color: var(--ui-muted); }
 .lang-pick:hover select { color: var(--ui-text); }
 .proj-pick svg.globe { left: 8px; right: auto; }
@@ -57,6 +66,52 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .zoom-val { min-width: 54px; font-variant-numeric: tabular-nums; }
 .sep { width: 1px; height: 20px; background: var(--ui-line); margin: 0 6px; }
 .tb-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- PROJECT MENU (app/projects.js) ---------- */
+.pj-logo {
+  width: 28px; height: 28px; flex: none; border-radius: 7px; display: grid; place-items: center; overflow: hidden;
+  background: #fff; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.pj-logo img { width: 78%; height: 78%; object-fit: contain; }
+.pj-mono {
+  background: color-mix(in srgb, var(--tint) 14%, #fff); color: color-mix(in srgb, var(--tint) 75%, #000);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 22%, transparent);
+  font-size: 11px; font-weight: 700; letter-spacing: .02em;
+}
+.pm {
+  position: fixed; z-index: 40; width: 300px; max-height: min(480px, calc(100vh - 70px));
+  display: flex; flex-direction: column; padding: 6px;
+  background: var(--ui-bg); border: 1px solid var(--ui-line); border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.06), 0 16px 40px rgba(0,0,0,.14);
+  animation: pm-in .12s ease-out;
+}
+.pm[hidden] { display: none; }
+@keyframes pm-in { from { opacity: 0; transform: translateY(-4px); } }
+.pm svg { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pm-search { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; padding: 0 10px; height: 34px; border-radius: 8px; background: var(--ui-hover); color: var(--ui-muted); }
+.pm-search input { flex: 1; min-width: 0; font: inherit; color: var(--ui-text); background: none; border: 0; outline: 0; }
+.pm-search:focus-within { box-shadow: 0 0 0 2px var(--ui-accent); }
+.pm-list { overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.pm-item {
+  display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px;
+  color: inherit; text-decoration: none; outline: 0; cursor: pointer;
+}
+.pm-item:hover, .pm-item:focus-visible { background: var(--ui-hover); }
+.pm-item:focus-visible { box-shadow: inset 0 0 0 1.5px var(--ui-accent); }
+.pm-item.current { background: #E5F4FF; }
+.pm-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.pm-text b, .pm-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-text b { font-weight: 500; }
+.pm-item.current .pm-text b { font-weight: 600; }
+.pm-text small { font-size: 11.5px; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.pm-check { color: var(--ui-accent); stroke-width: 2 !important; }
+.pm-empty { padding: 14px 10px; color: var(--ui-muted); text-align: center; }
+.pm-sep { height: 1px; background: var(--ui-line); margin: 6px 2px; flex: none; }
+.pm-all { padding: 8px 10px; font-weight: 500; }
+.pm-all svg { color: var(--ui-muted); }
+.pm-all span { flex: 1; }
+.pm-all small { color: var(--ui-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; background: var(--ui-hover); border-radius: 99px; padding: 1px 7px; }
+.pm-all:hover small, .pm-all:focus-visible small { background: var(--ui-bg); }
 
 /* ---------- LAYERS SIDEBAR ---------- */
 .sidebar {

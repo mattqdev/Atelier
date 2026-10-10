@@ -1,74 +1,91 @@
 ---
 name: atelier-import
-description: Migrate exported design files (from Figma, Paper, Sketch, Canva, Framer, Illustrator…) into a new Atelier project, with every asset placed on the canvas exactly as exported. Use it whenever the user hands over a folder, a zip or a list of png/jpg/svg/webp/gif/pdf files and wants them "in Atelier", or talks about moving, porting, migrating or importing designs, frames, artboards or a Figma file into Atelier. Use it even if they don't say "import" (e.g. "ho esportato tutto da Figma, mettimelo qui").
+description: Migrate exported design files (from Figma, Paper, Sketch, Canva, Framer, Illustrator…) into an Atelier project by rebuilding every asset as an editable HTML board that matches the export pixel for pixel. Use it whenever the user hands over a folder, a zip or a list of png/jpg/svg/webp/gif/pdf/html files and wants them "in Atelier", or talks about moving, porting, migrating or importing designs, frames, artboards or a Figma file into Atelier. Use it even if they don't say "import" (e.g. "ho esportato tutto da Figma, mettimelo qui").
 ---
 
-# Import exported designs into Atelier
+# Migrate exported designs into Atelier
 
-The goal is a **faithful transposition**: each exported file becomes one board on the canvas, shown at its original design size and pixel-for-pixel identical. Nothing is redrawn, recolored or "improved". The user is moving off another tool and has to trust that what they see in Atelier is what they had there. Rebuilding boards as HTML is a separate, later step, and only when asked.
+The goal is a **faithful, editable rebuild**: each exported file becomes one HTML board, at the original design size, that looks exactly like the export and can be edited later (real text, shared tokens, vector shapes). The user is leaving another tool: the export is the spec, not the deliverable. Placing the png on the canvas is not a migration.
+
+"Exactly" is measured, not eyeballed: every board is rendered and diffed against its original (step 5) until only antialiasing is left.
 
 ## Workflow
 
 ### 1. Look at the input
 
-List what was handed over (folder, zip, loose files) and note:
-- the formats: png, jpg, gif, webp and svg import directly; **pdf** needs its pages rendered first (step 2);
-- the scale: Figma adds `@2x` / `@3x` to file names exported at that scale. Without a suffix, a 2160×2700 png is ambiguous (a 1080×1350 frame at 2x, or a 2160×2700 frame?). If many files are exactly 2× or 3× a common format (1080×1350, 1080×1920, 1440×900, 1920×1080, A4 794×1123…), ask the user which scale they exported at, or pass `--scale` if they already said;
-- the structure: Figma turns `/` in frame names into subfolders, so subfolders usually mirror pages or groups and become **sections**.
+List what was handed over and note, per file:
+- **format**. PDFs from design tools carry vectors, exact text and positions: the best source there is. HTML originals are already code: split or adapt them rather than redrawing. Raster files (png/jpg/webp/gif) have to be measured from pixels.
+- **scale**. Figma appends `@2x`/`@3x`. Without a suffix, a 2160×2700 png may be a 1080×1350 frame at 2×: if many files are exactly 2× or 3× a common format, ask.
+- **structure**. Subfolders (Figma turns `/` in frame names into folders) become sections.
+- **links between assets**. A thumbnail shown inside a manual page, a logo reused everywhere, a product screenshot: build the shared piece once and reuse it (an asset in `assets/`, or the other board embedded with a scaled `<iframe>`).
 
-If no project id or name was given, derive them from the folder name and say what you chose. The id is the folder name: letters, digits, `-`, `_`.
+If no project id or name was given, derive them from the folder name and say what you chose (id = letters, digits, `-`, `_`). If `projects/<id>/` exists, ask before touching it.
 
-### 2. PDFs (only if present)
-
-Render each page to png at 2× so it stays sharp, into a folder named after the pdf (that folder becomes a section). Then pass that folder to the importer instead of the pdf:
-
-```
-swift .claude/skills/atelier-import/scripts/pdf_pages.swift "deck.pdf" "<scratchpad>/pdf/Deck"   # macOS, built in
-pdftoppm -r 144 -png "deck.pdf" "<scratchpad>/pdf/Deck/page"                                  # elsewhere, if poppler is installed
-```
-
-The Swift script uses PDFKit, so it needs no install on a Mac. It takes ~15 s to start and writes `page-01@2x.png`…, so the importer picks up scale 2 by itself. With `pdftoppm`, import that folder with `--scale 2`. Design tools export 1 px as 1 pt, so the board size equals the original frame size. Rename the folder to the title you want for the section ("Deck", not "deck-final-v3"). If no renderer works, tell the user and import the rest.
-
-### 3. Run the importer
+### 2. Set up the project and keep the originals
 
 ```
-python3 .claude/skills/atelier-import/scripts/import_assets.py <id> <path>... --name "<Name>" --dry-run
+python3 .claude/skills/atelier-import/scripts/import_assets.py <id> <path>... --name "<Name>" --dry-run   # then without --dry-run
+swift .claude/skills/atelier-import/scripts/pdf_pages.swift "deck.pdf" projects/<id>/sources/pdf-pages     # PDFs: page renders at 2×
 ```
 
-`--dry-run` prints the plan (JSON: boards, skipped files, warnings) without writing anything. Read it, then run again without `--dry-run`. The script:
-- reads each file's pixel size (stdlib only), divides by the scale → `w`/`h` in the manifest, so @2x files stay sharp on the canvas and in export;
-- keeps one board per asset: when the same name comes in several scales or formats it keeps svg > png > webp > gif > jpg, at the highest resolution, and lists the others as skipped;
-- copies the files into `projects/<id>/sources/` with url-safe names (the originals elsewhere are never touched) and keeps the original name as the board `title`, which is also the export file name;
-- orders boards naturally (`Post 2` before `Post 10`) and writes `manifest.js`;
-- registers the project in `projects/index.js`.
+The importer copies the originals into `projects/<id>/sources/` with url-safe names, reads their sizes (÷ scale → board `w`/`h`) and registers the project. The image manifest it writes is temporary: step 6 replaces it. Copy PDFs and HTML originals into `sources/` by hand. Page renders are references for the diff, not content.
 
-Options: `--scale N` forces a scale; `--group size` makes one section per board size (good for a flat folder of mixed formats), `--group flat` a single section; `--force` replaces an existing manifest.
+### 3. Read the source data before drawing anything
 
-If `projects/<id>/` already exists, don't use `--force` blindly: it replaces the manifest. Ask whether to add to that project or pick a new id. To add to an existing project, import into a temporary id, move the files, and merge the sections by hand.
+**PDF from a design tool** (Figma exports text as outlines, plus an invisible text layer):
+```
+swift .claude/skills/atelier-import/scripts/pdf_vectors.swift deck.pdf <scratch>/vec   # page-N.svg + page-N.txt
+python3 .claude/skills/atelier-import/scripts/pdf_layout.py <scratch>/vec 2            # text runs: x, baseline, size, colour, text
+python3 .claude/skills/atelier-import/scripts/pdf_layout.py <scratch>/vec 2 --shapes   # panels, strokes, icons, images
+```
+- Each text run gives the exact baseline (glyph paths start with `M x y Z` at the text origin), size, colour and opacity. Follow-on lines of a paragraph: baseline + the line spacing from PDFKit.
+- Logos and icons are vector paths: lift them into `assets/<name>.svg`, shifted into their own box. Never trace a raster when the vector exists.
+- `page-N.txt` lists clips (rounded-rect radii, and frames that clip strokes) and embedded images (blurred glows → CSS gradients; screenshots → rebuild them or embed the matching board).
 
-### 4. Finish the project
+**Raster only**: measure with PIL: bounding boxes by colour (`numpy` masks), word gaps by column scan, colours by sampling flat areas (thin text reads darker than its real colour). Look for a better source before rebuilding a screenshot: the product's own SVG output, the repo's history (`gh api repos/<o>/<r>/commits?path=…`), the website.
 
-- Section titles come from folder names. Rename them in the manifest if they are cryptic (`Frame 12` → keep it; `pg_01_final_v3` → ask or leave it).
-- If one of the assets is clearly the logo, set `logo:` in the manifest.
-- Create `projects/<id>/CLAUDE.md` with a short note: where the files came from (tool, date), that boards are image imports from `sources/`, and any brand facts the user mentioned. Keep it brief: it's the starting point for future work on this project.
+**Fonts**: confirm them and find tracking with
+```
+python3 .claude/skills/atelier-import/scripts/font_metrics.py "Dela Gothic One" "JetBrains Mono:400" --text "01 / BRAND" --size 20 --width 283.9
+```
+A width that matches at 0 confirms the font; a constant gap per character is letter spacing. The same call prints the ascent `A` and normal line height `A+D` used below. Google Fonts are fine, loaded from `assets/brand.css`.
 
-### 5. Verify
+### 4. Build
+
+1. `assets/brand.css` first: colour tokens with the brand's names, font stack, shared components (page furniture, panels, cards, highlight, pills…). Boards keep only their own positions.
+2. Boards follow `atelier-board` (one `<section class="page">`, `@page` = `w`/`h`), with each block absolutely positioned at its Figma coordinates (`.page > * { position: absolute }`). Text stays live text with explicit `<br>` line breaks, so wrapping can't drift.
+3. Vertical position from the baseline, for a font size `s` and a line height `L`:
+   `top = baseline − (L − (A+D)·s) / 2 − A·s`
+   Figma's "auto" line height is CSS `line-height: normal` (`L = (A+D)·s`).
+4. Known Figma behaviours:
+   - strokes inside a clipping frame show only their inner half → `box-shadow: inset 0 0 0 Npx …`; an expanded stroke ring in `--shapes` tells you the full width;
+   - "medium" text looks bolder than 400: check 400/500/600;
+   - tracking in % → px; Chrome rounds it at 2×, so let `tune.py` pick the value;
+   - transparent backgrounds: `html, body { background: transparent }` on that board.
+
+### 5. Verify every board against its original
 
 ```
-node .claude/skills/atelier-project/scripts/check_project.mjs <id>
-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
-  --window-size=1600,1000 --virtual-time-budget=5000 --screenshot=<scratchpad>/import.png \
-  "file://$PWD/Atelier.html?p=<id>"
+python3 .claude/skills/atelier-import/scripts/compare.py <board.html> <original.png> <scratch>/b1 [--size W H] [--crop x0,y0,x1,y1]
+python3 .claude/skills/atelier-import/scripts/tune.py <board.html> <original.png> x0,y0,x1,y1 "<css in board>" "<try 1>" "<try 2>" …
 ```
+- Aim for a mean difference ≤ ~2/255. Then read the `-diff.png`: red outlines on glyph edges are antialiasing, while solid red areas, whole words or a red frame mean a real error. Check those with `--crop` (original above, render below).
+- Use `tune.py` for what the source doesn't state (tracking, weight, a 0.5 px offset, an icon's size). It needs a value that changes something: if every candidate scores the same, the rule isn't being applied.
+- Then `node .claude/skills/atelier-project/scripts/check_project.mjs <id>` and a canvas screenshot (`Atelier.html?p=<id>` at 1600×1000).
 
-The check flags aspect ratios that don't match (the canvas uses `object-fit: cover`, so those boards would be cropped) and images smaller than their board (they would be blurry). Look at the screenshot: every asset visible, nothing cropped, sections in a sensible order.
+### 6. Finish
 
-### 6. Report
+- The manifest lists the HTML boards (`type: "html"`, `src: "boards/…"`, sizes = original design size). The originals stay in `sources/`: they are the reference for future edits.
+- If one asset is clearly the logo, set `logo:` (it shows on a white top bar, so use a version that is visible there).
+- `projects/<id>/CLAUDE.md`: origin and date, board list, shared files, brand facts read from the material (colours, type, rules), and the rebuild notes a future edit needs (formula constants, quirks such as offsets you had to reproduce).
 
-Tell the user: how many boards in which sections, what was skipped and why (duplicates, unsupported files), the scale you assumed, and the link `Atelier.html?p=<id>`. If anything was ambiguous (scale, grouping), say what you chose and how to change it.
+### 7. Report
+
+Boards per section, the diff score of each (or the range), anything kept as an image and why, what you assumed (scale, grouping) and the link `Atelier.html?p=<id>`.
 
 ## What not to do
 
-- Don't convert, compress or resize the images: export already lets the user produce PNG/JPG/WEBP/PDF from Atelier at any scale.
-- Don't rebuild assets as HTML boards unless asked: it breaks the "exactly as exported" promise. If the user wants editable boards later, that's the job of the `atelier-board` skill, one board at a time, with the image as a reference.
-- Don't put imported files in `assets/`: that folder is for files that boards link (css, fonts, logos). Imported designs are originals, so they go in `sources/`.
+- Don't ship images of text, or a screenshot as a board background "to be safe": that is an import, not a migration.
+- Don't redesign, recolour, "fix" spacing or modernise: reproduce what was exported, quirks included. Improvements come later, when asked, through `atelier-board`.
+- Don't modify `sources/`.
+- Don't use a raster in a board when the content can be HTML/SVG. The exception is real photographic or painted content with no vector equivalent: put it in `assets/` and say so in the report.

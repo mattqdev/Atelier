@@ -5,6 +5,7 @@
 
    name        → project name
    logo        → (optional) image shown in the top bar
+   cover       → (optional) item id shown on the projects page card
    sections[]  → groups stacked top to bottom
      id, title, note?, x?, y?
      items[]   → boards placed side by side, left to right

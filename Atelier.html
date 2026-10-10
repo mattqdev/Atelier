@@ -18,10 +18,10 @@
     <img class="app-icon" src="app/atelier.svg" alt="Atelier" title="Atelier">
     <span class="brand-sep">/</span>
     <img id="projLogo" alt="" hidden>
-    <label class="proj-pick" data-i18n-title="project.change">
-      <select id="projectSel"></select>
+    <button class="proj-btn" id="projBtn" data-i18n-title="project.change">
+      <span id="projName"></span>
       <svg viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>
-    </label>
+    </button>
   </div>
   <div class="spacer"></div>
   <label class="proj-pick lang-pick">
@@ -67,6 +67,7 @@
 <script src="app/locales/it.js"></script>
 <script src="app/i18n.js"></script>
 <script src="projects/index.js" onerror="window.ATELIER_PROJECTS=null"></script>
+<script src="app/projects.js"></script>
 <script src="app/export.js"></script>
 <script src="app/app.js"></script>
 </body>

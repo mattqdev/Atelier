@@ -1,6 +1,6 @@
 ---
 name: atelier-i18n
-description: Handle translations of the Atelier app UI: add or rename UI strings, translate them, add a new interface language, or fix missing/hard-coded text in Atelier.html, view.html or app/*.js. Use it whenever a change to the Atelier program adds visible text (buttons, tooltips, dialogs, errors, hints), or the user asks to translate the interface ("aggiungi il francese", "traduci questa label", "add Spanish UI"). Not for board/project content, which is never translated through i18n.
+description: Handle translations of the Atelier app UI: add or rename UI strings, translate them, add a new interface language, or fix missing/hard-coded text in Atelier.html, view.html, projects.html or app/*.js. Use it whenever a change to the Atelier program adds visible text (buttons, tooltips, dialogs, errors, hints), or the user asks to translate the interface ("aggiungi il francese", "traduci questa label", "add Spanish UI"). Not for board/project content, which is never translated through i18n.
 ---
 
 # Atelier UI translations
@@ -18,13 +18,13 @@ The app has no hard-coded UI text: every string is a key in `app/locales/<code>.
 1. Pick a key in the existing namespaces (`export.*`, `view.*`, `project.*`, `status.*`…), dot-separated, lower camelCase. Grep `en.js` first: the string may already exist.
 2. Add it to `en.js` next to related keys, then to **every** other file in `app/locales/`, in the same position, translated. Ship a real translation for every language, not English copied over: if you're unsure of a term, check how the same locale already says similar things (e.g. "board" → "tavola" in Italian) and stay consistent.
 3. Keep the same placeholders and keep `\\` escapes and keyboard symbols (⇧⌘E) as they are.
-4. Renaming or removing a key: change it in all locales and in every usage (`grep -rn "old.key" Atelier.html view.html app/`).
+4. Renaming or removing a key: change it in all locales and in every usage (`grep -rn "old.key" Atelier.html view.html projects.html app/`).
 
 ## Adding a language
 
 1. Copy `app/locales/en.js` to `app/locales/<code>.js` (ISO 639-1, e.g. `fr`), change the header comment, the object key `.<code>` and `_name` (the language's own name: "Français").
 2. Translate every value, keeping keys and placeholders.
-3. Add `<script src="app/locales/<code>.js"></script>` in **both** `Atelier.html` and `view.html`, after the other locales and before `app/i18n.js`.
+3. Add `<script src="app/locales/<code>.js"></script>` in **all three** pages (`Atelier.html`, `view.html`, `projects.html`), after the other locales and before `app/i18n.js`.
 4. Mention the new language where the docs list them (root `CLAUDE.md`: "dictionaries (en = reference, it, …)"; README if it lists languages).
 
 ## Verify

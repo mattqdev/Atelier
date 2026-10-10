@@ -23,7 +23,7 @@ That adds an **Atelier** app to your system (macOS: `~/Applications`, Linux: app
 ## Using it
 
 - **Open**: double-click `Atelier.html` (works from `file://`, no server or build step).
-- **Switch project**: menu in the top bar, or `Atelier.html?p=<id>`.
+- **Switch project**: project menu in the top bar, or `Atelier.html?p=<id>`. **All projects** in that menu opens `projects.html`: every project as a card with a preview of its boards, counts, review status and when you last opened it.
 - **Controls**: drag/scroll to move · ⌘+scroll or pinch to zoom · double-click zooms to a board · Shift/⌘+click multi-select · ⌘A select all · ←/→ browse · Enter opens · Shift+1 fit all · Shift+2 fit selection · ⇧⌘E export · `\` layers.
 - **Link to a board**: `Atelier.html?p=<id>&b=<itemId>` (the URL follows the selection).
 - **Live reload**: the manifest is re-read every 2 s; bump `rev` on an item to reload its board.
@@ -67,7 +67,7 @@ Creates an **Atelier** app bound to this folder: `~/Applications/Atelier.app` on
 
 ```
 projects/index.js          registry: window.ATELIER_PROJECTS = [{ id, name }]
-projects/<id>/manifest.js  project sections and boards (window.WORKSPACE)
+projects/<id>/manifest.js  project sections and boards (window.WORKSPACE); optional cover: "<itemId>" for the projects page card
 projects/<id>/boards/      HTML boards
 projects/<id>/assets/      css, logo, fonts
 ```

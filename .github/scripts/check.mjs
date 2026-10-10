@@ -1,6 +1,6 @@
 // Static checks for Atelier. Plain Node, no dependencies.
 // - every locale has exactly the keys (and {placeholders}) of en.js
-// - every locale file is loaded by Atelier.html and view.html
+// - every locale file is loaded by Atelier.html, view.html and projects.html
 // - the example manifest points to existing boards whose @page size matches w/h
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -30,7 +30,7 @@ for (const [code, dict] of Object.entries(locales)) {
   for (const k of Object.keys(dict)) if (!(k in ref)) fail(`locale ${code}: unknown key "${k}" (not in en.js)`);
 }
 
-for (const page of ['Atelier.html', 'view.html']) {
+for (const page of ['Atelier.html', 'view.html', 'projects.html']) {
   const html = read(page);
   const i18nAt = html.indexOf('app/i18n.js');
   for (const f of localeFiles) {
@@ -41,7 +41,7 @@ for (const page of ['Atelier.html', 'view.html']) {
 }
 
 // UI keys used in the markup must exist in en.js
-for (const page of ['Atelier.html', 'view.html']) {
+for (const page of ['Atelier.html', 'view.html', 'projects.html']) {
   for (const m of read(page).matchAll(/data-i18n(?:-title|-html)?="([^"]+)"/g)) {
     if (ref && !(m[1] in ref)) fail(`${page}: data-i18n key "${m[1]}" not in en.js`);
   }

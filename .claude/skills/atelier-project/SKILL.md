@@ -1,6 +1,6 @@
 ---
 name: atelier-project
-description: Create a new Atelier project (a new canvas in the top-bar menu), set up its brand tokens and its project CLAUDE.md, starting from scratch or from material the user provides (brand manual pdf, logo, screenshots, a website). Use it whenever the user wants a new project, client, brand or workspace in Atelier ("nuovo progetto", "apri un progetto per X", "set up a canvas for my client"), or wants to turn brand guidelines into an Atelier brand.css. For importing a folder of exported designs as-is, use atelier-import instead.
+description: Create a new Atelier project (a new canvas in the top-bar menu), set up its brand tokens and its project CLAUDE.md, starting from scratch or from material the user provides (brand manual pdf, logo, screenshots, a website). Use it whenever the user wants a new project, client, brand or workspace in Atelier ("nuovo progetto", "apri un progetto per X", "set up a canvas for my client"), or wants to turn brand guidelines into an Atelier brand.css. For migrating a folder of exported designs (rebuilt as editable HTML boards), use atelier-import instead.
 ---
 
 # New Atelier project

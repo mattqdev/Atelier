@@ -1,6 +1,6 @@
 /* =========================================================
    ATELIER — Figma-style infinite canvas, multi-project
-   Reads the registry (projects/index.js → window.ATELIER_PROJECTS),
+   Reads the registry (app/projects.js → window.ATELIER_REGISTRY),
    picks the project (?p=<id> → last opened → first) and loads
    projects/<id>/manifest.js (window.WORKSPACE), then lays out
    sections and boards. Adding content never requires touching
@@ -18,28 +18,21 @@
     const s = q.toString();
     history.replaceState(null, '', location.pathname + (s ? '?' + s : '') + location.hash);
   };
-  const PROJECTS = Array.isArray(window.ATELIER_PROJECTS) && window.ATELIER_PROJECTS.length
-    ? window.ATELIER_PROJECTS : [{ id: 'example', name: t('project.example') }];
+  const REG = window.ATELIER_REGISTRY;
+  const PROJECTS = REG.list;
   const LAST_KEY = 'atelier-last';
   const lastId = (() => { try { return localStorage.getItem(LAST_KEY); } catch { return null; } })();
   const wanted = params.get('p');
   const PROJECT = PROJECTS.find(p => p.id === wanted)
     || (!wanted && PROJECTS.find(p => p.id === lastId))
     || (wanted ? { id: wanted, name: wanted } : PROJECTS[0]);
-  const BASE = 'projects/' + PROJECT.id + '/';
+  const BASE = REG.base(PROJECT.id);
   const STORE_KEY = 'ws-view:' + PROJECT.id;
 
-  const sel = document.querySelector('#projectSel');
-  const listed = PROJECTS.some(p => p.id === PROJECT.id) ? PROJECTS : [...PROJECTS, PROJECT];
-  sel.innerHTML = listed.map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join('');
-  sel.value = PROJECT.id;
-  sel.onchange = () => { location.search = '?p=' + encodeURIComponent(sel.value); };
+  document.querySelector('#projName').textContent = PROJECT.name || PROJECT.id;
+  REG.menu(document.querySelector('#projBtn'), PROJECT);
 
-  const tag = document.createElement('script');
-  tag.src = BASE + 'manifest.js';
-  tag.onload = () => window.WORKSPACE ? start(window.WORKSPACE) : notFound();
-  tag.onerror = notFound;
-  document.body.appendChild(tag);
+  REG.readManifest(PROJECT.id).then(ws => ws ? start(ws) : notFound());
 
   function notFound() {
     document.title = 'Atelier';
@@ -49,6 +42,7 @@
 
   function start(WS) {
     try { localStorage.setItem(LAST_KEY, PROJECT.id); } catch {}
+    REG.touch(PROJECT.id);
     if (!wanted) setParam('p', PROJECT.id); // a copied link reopens this project
     const LAYOUT = { sectionPad: 80, itemGap: 80, sectionGap: 220 };
     const ZOOM_MIN = 0.02, ZOOM_MAX = 4;
@@ -180,6 +174,7 @@
       layout();
       render();
       document.title = (WS.name || PROJECT.name) + ' — Atelier';
+      $('#projName').textContent = WS.name || PROJECT.name || PROJECT.id;
       const lg = $('#projLogo');
       if (WS.logo) { lg.src = BASE + WS.logo; lg.hidden = false; } else lg.hidden = true;
       items.forEach(i => i.def.id !== selId && pickedIds.has(i.def.id) && picked.add(i));
@@ -383,23 +378,16 @@
     try { if (localStorage.getItem('ws-hint-off')) $('#hint').remove(); } catch {}
 
     /* ---------- LIVE RELOAD ---------- */
-    // re-reads manifest.js (fetch doesn't work from file://, a <script> does)
     let sig = JSON.stringify(WS), polling = false;
     function poll() {
       if (polling || document.hidden) return;
       polling = true;
-      window.WORKSPACE = null;
-      const s = document.createElement('script');
-      s.src = BASE + 'manifest.js?t=' + Date.now();
-      s.onload = s.onerror = () => {
-        s.remove(); polling = false;
-        const next = window.WORKSPACE;
-        window.WORKSPACE = WS;
-        if (!next || !Array.isArray(next.sections)) return; // file mid-edit: retry on the next tick
+      REG.readManifest(PROJECT.id, true).then(next => {
+        polling = false;
+        if (!next) return; // file mid-edit: retry on the next tick
         const n = JSON.stringify(next);
         if (n !== sig) { sig = n; WS = next; build(); }
-      };
-      document.head.appendChild(s);
+      });
     }
     setInterval(poll, 2000);
 

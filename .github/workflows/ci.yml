@@ -35,14 +35,16 @@ jobs:
           printf '#!/bin/sh\nexec google-chrome --no-sandbox "$@"\n' > "$RUNNER_TEMP/chrome"
           chmod +x "$RUNNER_TEMP/chrome"
           echo "ATELIER_CHROME=$RUNNER_TEMP/chrome" >> "$GITHUB_ENV"
-      - name: Screenshot canvas and viewer from file://
+      - name: Screenshot canvas, viewer and projects page from file://
         run: |
           mkdir -p shots
           "$ATELIER_CHROME" --headless=new --hide-scrollbars --window-size=1600,1000 --virtual-time-budget=5000 \
             --screenshot=shots/canvas.png "file://$PWD/Atelier.html?p=example"
           "$ATELIER_CHROME" --headless=new --hide-scrollbars --window-size=1600,1000 --virtual-time-budget=5000 \
             --screenshot=shots/viewer.png "file://$PWD/view.html?p=example&b=welcome"
-          test -s shots/canvas.png && test -s shots/viewer.png
+          "$ATELIER_CHROME" --headless=new --hide-scrollbars --window-size=1600,1000 --virtual-time-budget=5000 \
+            --screenshot=shots/projects.png "file://$PWD/projects.html"
+          test -s shots/canvas.png && test -s shots/viewer.png && test -s shots/projects.png
       - name: Export through atelier.py
         run: |
           python3 atelier.py --no-open --port 4747 &

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier</title>
+<link rel="icon" href="app/atelier.svg">
+<link rel="apple-touch-icon" href="app/atelier-touch.png">
+<link rel="stylesheet" href="app/app.css">
+<link rel="stylesheet" href="app/home.css">
+</head>
+<body class="home">
+
+<header class="topbar">
+  <a class="tb-btn" id="backBtn" href="Atelier.html" data-i18n-title="home.back">
+    <svg viewBox="0 0 16 16"><path d="M13 8H3M7 4 3 8l4 4"/></svg>
+  </a>
+  <div class="brand">
+    <img class="app-icon" src="app/atelier.svg" alt="Atelier" title="Atelier">
+    <span class="brand-sep">/</span>
+    <span data-i18n="home.title"></span>
+  </div>
+  <div class="spacer"></div>
+  <label class="proj-pick lang-pick">
+    <svg class="globe" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.75"/><path d="M2.25 8h11.5M8 2.25c-1.6 1.6-2.4 3.5-2.4 5.75S6.4 12.15 8 13.75M8 2.25c1.6 1.6 2.4 3.5 2.4 5.75S9.6 12.15 8 13.75"/></svg>
+    <select id="langSel"></select>
+    <svg viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>
+  </label>
+</header>
+
+<main class="hm">
+  <div class="hm-head">
+    <div class="hm-title">
+      <h1 data-i18n="home.title"></h1>
+      <span id="hmCount"></span>
+    </div>
+    <div class="hm-tools">
+      <label class="hm-search">
+        <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.25"/><path d="M10.25 10.25 13.5 13.5"/></svg>
+        <input type="search" id="hmSearch" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="hm-seg" role="group">
+        <button data-sort="recent" data-i18n="home.sortRecent"></button>
+        <button data-sort="name" data-i18n="home.sortName"></button>
+      </div>
+    </div>
+  </div>
+  <div class="hm-grid" id="hmGrid"></div>
+  <div class="hm-none" id="hmNone" hidden data-i18n="project.noMatch"></div>
+</main>
+
+<script src="app/locales/en.js"></script>
+<script src="app/locales/it.js"></script>
+<script src="app/i18n.js"></script>
+<script src="projects/index.js" onerror="window.ATELIER_PROJECTS=null"></script>
+<script src="app/projects.js"></script>
+<script src="app/home.js"></script>
+</body>
+</html>
