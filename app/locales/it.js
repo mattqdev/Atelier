@@ -67,6 +67,7 @@
   "export.doneOne": "1 file esportato",
   "export.savedIn": "copia salvata in {path}",
   "export.saveFailed": "non salvati nella cartella del progetto ({msg})",
+  "export.serverOutdated": "atelier.py in esecuzione è una versione vecchia: riavvialo",
   "export.cancelled": "Export annullato",
   "export.failed": "Export non riuscito: {msg}",
   "export.unsupported": "Questo browser non sa codificare {format}",

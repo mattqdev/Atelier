@@ -170,6 +170,8 @@ body.space .viewport { cursor: grab; }
 }
 .item-frame iframe, .item-frame img { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
 .item-frame img { object-fit: cover; }
+.item.pending .item-frame { background: var(--ui-hover); } /* placeholder until the board nears the viewport */
+.item.pending .item-frame > * { visibility: hidden; }
 .item:hover .item-frame { outline: calc(1.5px * var(--inv)) solid var(--ui-accent); }
 .item.selected .item-frame { outline: calc(2px * var(--inv)) solid var(--ui-accent); }
 .item.selected .item-label { color: var(--ui-accent); font-weight: 600; }

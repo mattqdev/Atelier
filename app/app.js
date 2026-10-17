@@ -54,7 +54,18 @@
     const view = { x: 0, y: 0, s: 1 };
     let items = [];        // { def, section, x, y, w, h, el, layerEl }
     let sections = [];     // { def, x, y, w, h, items }
-    const frames = new Map(); // item key → { el, type, url } (reused across rebuilds)
+    const frames = new Map(); // item key → { el, type, url, loaded } (reused across rebuilds)
+    // boards get their src only when they come near the viewport; once loaded they stay alive
+    const wake = el => {
+      const f = [...frames.values()].find(f => f.el === el);
+      lazy.unobserve(el);
+      if (!f || f.loaded) return;
+      f.loaded = true;
+      el.querySelector('iframe, img').src = f.url;
+      el.classList.remove('pending');
+    };
+    const lazy = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && wake(e.target)),
+      { root: viewport, rootMargin: '50%' });
     let selected = null, bust = 0; // selected = primary selection (URL, Open, arrows)
     const picked = new Set();     // every selected item (Shift/⌘-click)
 
@@ -131,17 +142,19 @@
           keep.add(key);
           let f = frames.get(key);
           if (!f || f.type !== d.type) {
-            f?.el.remove();
+            if (f) { lazy.unobserve(f.el); f.el.remove(); }
             const ie = document.createElement('div');
-            ie.className = 'item';
+            ie.className = 'item pending';
             ie.innerHTML = `<div class="item-label"></div><div class="item-frame">${d.type === 'image'
-              ? `<img src="${esc(url)}" draggable="false">`
-              : `<iframe src="${esc(url)}" tabindex="-1" scrolling="no"></iframe>`}</div>`;
+              ? `<img draggable="false">`
+              : `<iframe tabindex="-1" scrolling="no"></iframe>`}</div>`;
             world.appendChild(ie);
-            f = { el: ie, type: d.type, url };
+            f = { el: ie, type: d.type, url, loaded: false };
             frames.set(key, f);
+            lazy.observe(ie);
           } else if (f.url !== url) {
-            f.el.querySelector('iframe, img').src = url;
+            // a board not loaded yet just picks up the new url when it wakes
+            if (f.loaded) f.el.querySelector('iframe, img').src = url;
             f.url = url;
           }
           const ie = f.el, media = ie.querySelector('iframe, img');
@@ -162,7 +175,7 @@
           it.layerEl = li;
         });
       });
-      frames.forEach((f, key) => { if (!keep.has(key)) { f.el.remove(); frames.delete(key); } });
+      frames.forEach((f, key) => { if (!keep.has(key)) { lazy.unobserve(f.el); f.el.remove(); frames.delete(key); } });
       if (!items.length) viewport.insertAdjacentHTML('beforeend',
         `<div class="empty-msg"><div><b>${esc(t('project.empty'))}</b>${esc(t('project.emptyHint'))}</div></div>`);
     }
