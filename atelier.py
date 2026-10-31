@@ -8,8 +8,13 @@ protocol), so each board renders in a fresh tab in well under a second.
 Atelier.html keeps working from file:// without it; only export (and
 "copy image" in the viewer) needs the server.
 
+It also renders the canvas thumbnails (projects/<id>/.thumbs/<item>@<rev>.webp):
+on demand while the canvas is served, or in one go with --thumbs, so the
+canvas opened from file:// finds them too.
+
     python3 atelier.py              # http://localhost:4747, opens the browser
     python3 atelier.py --port 8000 --no-open
+    python3 atelier.py --thumbs NextWave    # (re)build missing/outdated thumbnails; no id = every project
     python3 atelier.py --install-launcher   # one-click app (macOS, Linux, Windows)
 
 Chrome is auto-detected; set ATELIER_CHROME=/path/to/chrome to override.
@@ -21,9 +26,12 @@ Endpoints (used by app/export.js):
     GET /__atelier/sheet?src=&type=&w=&h=[&pdf=1] → page wrapping images / several boards
     POST /__atelier/save?base=projects/<id>/&dir=&name=  (body = file) → {"path"}
         keeps a copy of every export in projects/<id>/exports/<dir>/
+    GET /__atelier/thumb?base=projects/<id>/&id=&rev=&src=&type=&w=&h= → webp (used by app/app.js)
+        cached in projects/<id>/.thumbs/, re-rendered when the board file is newer
 """
 import argparse
 import base64
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import re
@@ -44,6 +52,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parent
 PROJECTS = ROOT / "projects"
 MAX_SIDE = 16384  # Chrome/canvas limit per side, in device pixels
+THUMB = 640       # longest side of a canvas thumbnail, in pixels (same value in app/app.js)
 
 
 def find_chrome():
@@ -142,7 +151,8 @@ class Browser:
 
     def __init__(self):
         self.proc, self.endpoint, self.lock = None, None, threading.Lock()
-        self.slots = threading.Semaphore(max(2, min(6, (os.cpu_count() or 4) // 2)))
+        self.size = max(2, min(6, (os.cpu_count() or 4) // 2))  # tabs rendering at once
+        self.slots = threading.Semaphore(self.size)
 
     def start(self):
         with self.lock:
@@ -204,7 +214,41 @@ class Browser:
                 self.stop()  # Chrome crashed or hung: restart once
                 return self._render(self.start(), url, w, h, scale, fmt, quality, timeout)
 
+    def evaluate(self, url, expression, timeout=30):
+        """Load url in a fresh tab and return the (JSON) value of expression."""
+        def run(call):
+            call("Page.enable")
+            call("Page.navigate", "Page.loadEventFired", url=url)
+            res = call("Runtime.evaluate", awaitPromise=True, returnByValue=True, expression=expression)
+            if "exceptionDetails" in res:
+                raise RuntimeError(res["exceptionDetails"].get("text", "evaluation failed"))
+            return res["result"].get("value")
+        with self.slots:
+            return self._tab(self.start(), timeout, run)
+
     def _render(self, endpoint, url, w, h, scale, fmt, quality, timeout):
+        def run(call):
+            call("Page.enable")
+            call("Emulation.setDeviceMetricsOverride", width=w, height=h,
+                 deviceScaleFactor=scale if fmt != "pdf" else 1, mobile=False)
+            call("Page.navigate", "Page.loadEventFired", url=url)
+            # wait for web fonts and images (iframes included), finish CSS animations, let it paint
+            call("Runtime.evaluate", awaitPromise=True, expression=SETTLE_JS)
+            if fmt == "pdf":
+                res = call("Page.printToPDF", printBackground=True, preferCSSPageSize=True,
+                           marginTop=0, marginBottom=0, marginLeft=0, marginRight=0,
+                           displayHeaderFooter=False, transferMode="ReturnAsBase64")
+            else:
+                shot = {"format": "jpeg" if fmt == "jpg" else fmt}
+                if fmt != "png":
+                    shot["quality"] = quality
+                res = call("Page.captureScreenshot", **shot)
+            return base64.b64decode(res["data"])
+        return self._tab(endpoint, timeout, run)
+
+    @staticmethod
+    def _tab(endpoint, timeout, run):
+        """Open a tab, hand run() a DevTools `call` for it, close the tab."""
         req = Request(f"http://{endpoint}/json/new?about:blank", method="PUT")
         with urlopen(req, timeout=10) as r:
             target = json.loads(r.read())
@@ -226,22 +270,7 @@ class Browser:
             return result
 
         try:
-            call("Page.enable")
-            call("Emulation.setDeviceMetricsOverride", width=w, height=h,
-                 deviceScaleFactor=scale if fmt != "pdf" else 1, mobile=False)
-            call("Page.navigate", "Page.loadEventFired", url=url)
-            # wait for web fonts and images (iframes included), finish CSS animations, let it paint
-            call("Runtime.evaluate", awaitPromise=True, expression=SETTLE_JS)
-            if fmt == "pdf":
-                res = call("Page.printToPDF", printBackground=True, preferCSSPageSize=True,
-                           marginTop=0, marginBottom=0, marginLeft=0, marginRight=0,
-                           displayHeaderFooter=False, transferMode="ReturnAsBase64")
-            else:
-                shot = {"format": "jpeg" if fmt == "jpg" else fmt}
-                if fmt != "png":
-                    shot["quality"] = quality
-                res = call("Page.captureScreenshot", **shot)
-            return base64.b64decode(res["data"])
+            return run(call)
         finally:
             ws.close()
             try:
@@ -280,6 +309,39 @@ def sheet_html(items, pdf):
     return ("<!doctype html><meta charset=utf-8><style>" + "".join(css) + "</style>" + "".join(body))
 
 
+# window.WORKSPACE of the manifest.js the tab has open (as text)
+MANIFEST_JS = """(() => { const window = {}; new Function('window', document.body.innerText)(window);
+  return window.WORKSPACE; })()"""
+
+
+def file_key(v):
+    """Item id / rev as a file name part (same rule as fileKey in app/app.js)."""
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", str(v))
+
+
+def board_url(src, kind, w, h):
+    base = f"http://127.0.0.1:{PORT}/"
+    if kind == "html":
+        return base + quote(src)
+    return base + "__atelier/sheet?" + urlencode([("src", src), ("type", kind), ("w", w), ("h", h), ("pdf", 0)])
+
+
+def make_thumb(project, item_id, rev, src, kind, w, h):
+    """Path of the item's thumbnail, rendered unless a newer one than the board file exists.
+    Returns (path, rendered)."""
+    out = project / ".thumbs" / f"{file_key(item_id)}@{file_key(rev)}.webp"
+    if out.exists() and out.stat().st_mtime >= (ROOT / src).stat().st_mtime:
+        return out, False
+    body = BROWSER.render(board_url(src, kind, w, h), w, h, THUMB / max(w, h), "webp", 82)
+    out.parent.mkdir(exist_ok=True)
+    for old in out.parent.glob(f"{file_key(item_id)}@*.webp"):  # other revs are outdated
+        old.unlink(missing_ok=True)
+    tmp = out.with_name(out.name + f".{threading.get_ident()}.tmp")
+    tmp.write_bytes(body)
+    tmp.replace(out)
+    return out, True
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -311,6 +373,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_bytes(200, json.dumps({"export": bool(CHROME)}).encode(), "application/json")
         if url.path == "/__atelier/render":
             return self.handle_render(parse_qs(url.query))
+        if url.path == "/__atelier/thumb":
+            return self.handle_thumb(parse_qs(url.query))
         if url.path == "/__atelier/sheet":
             q = parse_qs(url.query)
             try:
@@ -412,6 +476,72 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_bytes(200, body, mime)
 
 
+    def handle_thumb(self, q):
+        if not CHROME:
+            return self.fail(501, "Chrome not found (set ATELIER_CHROME)")
+        arg = lambda k: q.get(k, [""])[0]
+        project = (ROOT / arg("base")).resolve()
+        if project.parent != PROJECTS or not project.is_dir():
+            return self.fail(404, "project not found")
+        try:
+            (src, kind, w, h), = self.items(q)
+        except LookupError as e:
+            return self.fail(404, str(e))
+        except ValueError:
+            return self.fail(400, "bad parameters")
+        if not arg("id"):
+            return self.fail(400, "bad parameters")
+        try:
+            path, _ = make_thumb(project, arg("id"), arg("rev") or "0", src, kind, w, h)
+        except Exception as e:  # noqa: BLE001 — the canvas falls back to the live board
+            return self.fail(500, str(e))
+        self.send_bytes(200, path.read_bytes(), "image/webp")
+
+
+def build_thumbs(ids):
+    """--thumbs: render every missing or outdated thumbnail of the given projects
+    (all of them when ids is empty) and remove the ones of deleted boards."""
+    if not CHROME:
+        sys.exit("Chrome not found (set ATELIER_CHROME)")
+    global PORT
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    PORT = server.server_address[1]
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    ids = ids or sorted(p.name for p in PROJECTS.iterdir() if (p / "manifest.js").is_file())
+    failed = False
+    try:
+        for pid in ids:
+            project = PROJECTS / pid
+            if not (project / "manifest.js").is_file():
+                print(f"{pid}: projects/{pid}/manifest.js not found")
+                failed = True
+                continue
+            ws = BROWSER.evaluate(f"http://127.0.0.1:{PORT}/projects/{quote(pid)}/manifest.js", MANIFEST_JS) or {}
+            items = [i for s in ws.get("sections") or [] for i in s.get("items") or []]
+
+            def one(i):
+                src = (project / i["src"]).resolve().relative_to(ROOT).as_posix()
+                return make_thumb(project, i["id"], i.get("rev", 0), src, i.get("type", "html"), int(i["w"]), int(i["h"]))
+            done = 0
+            with ThreadPoolExecutor(BROWSER.size) as pool:
+                futures = [(i, pool.submit(one, i)) for i in items]
+                for i, fut in futures:
+                    try:
+                        done += fut.result()[1]
+                    except Exception as e:  # noqa: BLE001 — report and go on with the others
+                        print(f"  {i.get('id')}: {e}")
+                        failed = True
+            keep = {f"{file_key(i['id'])}@{file_key(i.get('rev', 0))}.webp" for i in items}
+            for old in (project / ".thumbs").glob("*.webp"):
+                if old.name not in keep:
+                    old.unlink()
+            print(f"{pid}: {len(items)} boards, {done} thumbnails rendered → projects/{pid}/.thumbs/")
+    finally:
+        BROWSER.stop()
+        server.shutdown()
+    sys.exit(1 if failed else 0)
+
+
 def is_running(port):
     """True when an Atelier server already answers on `port`."""
     try:
@@ -509,12 +639,16 @@ def main():
     ap.add_argument("--no-open", action="store_true", help="don't open the browser")
     ap.add_argument("--install-launcher", action="store_true",
                     help="create a one-click Atelier app for this folder (macOS, Linux, Windows)")
+    ap.add_argument("--thumbs", nargs="*", metavar="ID",
+                    help="render the canvas thumbnails of these projects (default: all) and exit")
     args = ap.parse_args()
     if sys.stdout:  # None under pythonw; Windows consoles may not encode "→"
         sys.stdout.reconfigure(errors="replace")
 
     if args.install_launcher:
         return install_launcher(args.port)
+    if args.thumbs is not None:
+        return build_thumbs(args.thumbs)
 
     url = f"http://localhost:{args.port}/Atelier.html"
     if is_running(args.port):  # second launch: reuse the running server
