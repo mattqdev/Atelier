@@ -7,6 +7,9 @@
    this file: the project manifest is enough.
    The manifest is re-read every 2 s: changes show up on their
    own; an item whose `rev` changed reloads only its board.
+   Sections can be grouped into pages (`page` on a section): only
+   the current page is laid out. Boards show cached thumbnails and
+   load their real document only when zoomed in on.
    ========================================================= */
 (() => {
   const { t } = window.ATELIER_I18N;
@@ -27,7 +30,6 @@
     || (!wanted && PROJECTS.find(p => p.id === lastId))
     || (wanted ? { id: wanted, name: wanted } : PROJECTS[0]);
   const BASE = REG.base(PROJECT.id);
-  const STORE_KEY = 'ws-view:' + PROJECT.id;
 
   document.querySelector('#projName').textContent = PROJECT.name || PROJECT.id;
   REG.menu(document.querySelector('#projBtn'), PROJECT);
@@ -48,27 +50,149 @@
     const ZOOM_MIN = 0.02, ZOOM_MAX = 4;
 
     const $ = s => document.querySelector(s);
-    const viewport = $('#viewport'), world = $('#world'), layers = $('#layers');
+    const viewport = $('#viewport'), world = $('#world'), layers = $('#layers'), pagesNav = $('#pages');
     const zoomVal = $('#zoomVal'), openBtn = $('#openBtn'), exportBtn = $('#exportBtn');
 
     const view = { x: 0, y: 0, s: 1 };
     let items = [];        // { def, section, x, y, w, h, el, layerEl }
     let sections = [];     // { def, x, y, w, h, items }
-    const frames = new Map(); // item key → { el, type, url } (reused across rebuilds)
+    const frames = new Map(); // item key → { el, type, title, url, thumbUrl, thumb, live, box, visible, seen } (reused across rebuilds)
+    let pages = [], page = null; // page = { title, sections }: the one on the canvas
+
+    /* ---------- THUMBNAILS AND LIVE BOARDS ----------
+       Near the viewport a board shows its thumbnail: a small webp that
+       atelier.py renders and caches in projects/<id>/.thumbs/ (served:
+       on demand; from file://: `python3 atelier.py --thumbs <id>`).
+       The real document (iframe/img) is loaded only when the board is
+       big on screen, a few at a time, closest to the center first, and
+       dropped as soon as the thumbnail is enough again. A board without
+       a thumbnail stays live while near the viewport, and at most
+       MAX_LIVE of those are kept, least recently seen dropped first. */
+    const MAX_LIVE = 40, MAX_LOADING = 4, THUMB = 640; // THUMB = longest side, as in atelier.py
+    const SERVED = location.protocol.startsWith('http');
+    const fileKey = v => String(v).replace(/[^A-Za-z0-9_.-]/g, '_');
+    const thumbOf = d => SERVED
+      ? '__atelier/thumb?' + new URLSearchParams({ base: BASE, id: d.id, src: BASE + d.src, type: d.type || 'html',
+        w: d.w, h: d.h, rev: d.rev ?? 0, ...(bust ? { v: bust } : {}) })
+      : BASE + '.thumbs/' + fileKey(d.id) + '@' + fileKey(d.rev ?? 0) + '.webp';
+    const queue = new Set();
+    let loading = 0, tick = 0;
+    const big = f => Math.max(f.box.w, f.box.h) * view.s * devicePixelRatio > THUMB * 1.25;
+    const onScreen = f => {
+      const x = f.box.x * view.s + view.x, y = f.box.y * view.s + view.y;
+      return x < viewport.clientWidth && x + f.box.w * view.s > 0 && y < viewport.clientHeight && y + f.box.h * view.s > 0;
+    };
+    const wantsLive = f => f.visible && (f.thumb === 'missing' || (f.thumb === 'ok' && big(f) && onScreen(f)));
+    const lazy = new IntersectionObserver(es => {
+      es.forEach(e => {
+        const f = e.target._frame;
+        if (!f) return;
+        f.visible = e.isIntersecting;
+        f.seen = ++tick;
+        if (f.visible) showThumb(f);
+      });
+      refresh();
+    }, { root: viewport, rootMargin: '50%' });
+
+    // re-evaluates which boards should be live (after scrolling, zooming, a thumbnail arriving)
+    function refresh() {
+      frames.forEach(f => { if (wantsLive(f) && !f.live) queue.add(f); else queue.delete(f); });
+      prune();
+      pump();
+    }
+    function showThumb(f) {
+      if (f.thumb !== 'idle') return;
+      f.thumb = 'loading';
+      const img = f.el.querySelector('.thumb'), url = f.thumbUrl;
+      img.onload = () => { if (url !== f.thumbUrl) return; f.thumb = 'ok'; f.el.classList.add('thumb-on'); refresh(); };
+      img.onerror = () => {
+        if (url !== f.thumbUrl) return;
+        f.thumb = 'missing'; // never show an outdated thumbnail
+        f.el.classList.remove('thumb-on'); img.removeAttribute('src');
+        refresh();
+      };
+      img.src = url;
+    }
+    function pump() {
+      if (loading >= MAX_LOADING || !queue.size) return;
+      const cx = (viewport.clientWidth / 2 - view.x) / view.s, cy = (viewport.clientHeight / 2 - view.y) / view.s;
+      const dist = f => Math.hypot(f.box.x + f.box.w / 2 - cx, f.box.y + f.box.h / 2 - cy);
+      [...queue].sort((a, b) => dist(a) - dist(b)).slice(0, MAX_LOADING - loading).forEach(load);
+    }
+    function load(f) {
+      queue.delete(f);
+      const m = f.live = document.createElement(f.type === 'image' ? 'img' : 'iframe');
+      m.className = 'live';
+      if (f.type === 'image') { m.draggable = false; m.alt = f.title; } else { m.tabIndex = -1; m.scrolling = 'no'; m.title = f.title; }
+      loading++;
+      let done = false;
+      f.end = () => {
+        if (done) return;
+        done = true; loading--; f.end = null;
+        f.el.classList.add('live-on');
+        pump();
+      };
+      m.onload = m.onerror = f.end;
+      setTimeout(() => f.end?.(), 8000); // a board that never fires load doesn't block the queue
+      m.src = f.url;
+      f.el.querySelector('.item-frame').appendChild(m);
+    }
+    function unload(f) {
+      f.end?.();
+      f.live.remove(); // removing the iframe frees its whole document
+      f.live = null;
+      f.el.classList.remove('live-on');
+    }
+    function prune() {
+      const live = [...frames.values()].filter(f => f.live);
+      // with a thumbnail to fall back on, a board is live only while it needs to be
+      live.filter(f => f.thumb === 'ok' && !wantsLive(f)).forEach(unload);
+      const rest = live.filter(f => f.live);
+      let extra = rest.length - MAX_LIVE;
+      if (extra > 0) rest.filter(f => !f.visible).sort((a, b) => a.seen - b.seen).forEach(f => extra-- > 0 && unload(f));
+    }
+    function drop(f) {
+      f.end?.();
+      queue.delete(f);
+      lazy.unobserve(f.el);
+      f.el.remove();
+    }
+
     let selected = null, bust = 0; // selected = primary selection (URL, Open, arrows)
     const picked = new Set();     // every selected item (Shift/⌘-click)
 
+    // the view (pan, zoom, selection) is remembered per page
+    const viewKey = () => 'ws-view:' + PROJECT.id + (pages.length > 1 ? '/' + page.title : '');
     const store = {
-      get() { try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; } },
-      set(v) { try { localStorage.setItem(STORE_KEY, JSON.stringify(v)); } catch {} }
+      get() { try { return JSON.parse(localStorage.getItem(viewKey())); } catch { return null; } },
+      set(v) { try { localStorage.setItem(viewKey(), JSON.stringify(v)); } catch {} }
     };
+    const PAGE_KEY = 'ws-page:' + PROJECT.id, FOLD_KEY = 'ws-folded:' + PROJECT.id;
+    const folded = new Set((() => { try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || []; } catch { return []; } })());
+    const saveFolded = () => { try { localStorage.setItem(FOLD_KEY, JSON.stringify([...folded])); } catch {} };
+
+    /* ---------- PAGES ---------- */
+    // a section without `page` stays on the page of the section before it
+    function paginate() {
+      pages = [];
+      let title = '';
+      (WS.sections || []).forEach(sec => {
+        title = sec.page != null ? String(sec.page) : title;
+        let p = pages.find(p => p.title === title);
+        if (!p) pages.push(p = { title, sections: [] });
+        p.sections.push(sec);
+      });
+      if (!pages.length) pages.push({ title: '', sections: [] });
+      page = pages.find(p => p.title === page?.title) || pages[0];
+    }
+    const pageName = p => p.title || t('pages.default');
 
     /* ---------- LAYOUT ---------- */
     function layout() {
       items = []; sections = [];
       let cursorY = 0;
       const P = LAYOUT.sectionPad;
-      (WS.sections || []).forEach(sec => {
+      page.sections.forEach(sec => {
         const sx = sec.x ?? 0, sy = sec.y ?? cursorY;
         let x = sx + P, maxH = 0;
         const secItems = [];
@@ -87,6 +211,8 @@
 
     /* ---------- RENDER ---------- */
     const ICONS = {
+      page: '<svg class="ic" viewBox="0 0 16 16"><path d="M4 2h5.5L12 4.5V14H4z"/><path d="M9.5 2v2.5H12"/></svg>',
+      chevron: '<svg class="chev" viewBox="0 0 16 16"><path d="M6 4.5 9.5 8 6 11.5"/></svg>',
       section: '<svg class="ic" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>',
       html: '<svg class="ic" viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>',
       image: '<svg class="ic" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1"/><circle cx="6" cy="6.5" r="1.2"/><path d="M2.5 12l3.5-3.5 2.5 2.5 2-2 3 3"/></svg>'
@@ -106,6 +232,7 @@
       world.querySelectorAll('.section, .empty-msg').forEach(n => n.remove());
       viewport.querySelector('.empty-msg')?.remove();
       layers.innerHTML = '';
+      renderPages();
       const keep = new Set();
       sections.forEach(sec => {
         const el = document.createElement('div');
@@ -116,13 +243,18 @@
 
         const lb = document.createElement('button');
         lb.className = 'layer l-section';
-        lb.innerHTML = `${ICONS.section}<span>${esc(sec.def.title)}</span><span class="meta">${sec.items.length}</span>`;
+        lb.innerHTML = `<span class="fold" title="${esc(t('layers.fold'))}">${ICONS.chevron}</span>${ICONS.section}<span>${esc(sec.def.title)}</span><span class="meta">${sec.items.length}</span>`;
         lb.onclick = e => {
+          if (e.target.closest('.fold')) return fold(sec, !sec.group.hidden);
           // Shift/⌘-click on a section adds all its boards to the selection
           if (e.shiftKey || e.metaKey || e.ctrlKey) return sec.items.forEach(it => picked.has(it) || select(it, true, true));
           select(null); zoomTo(sec, true);
         };
-        layers.appendChild(lb);
+        const group = document.createElement('div');
+        group.hidden = folded.has(sec.def.id);
+        lb.classList.toggle('folded', group.hidden);
+        layers.append(lb, group);
+        Object.assign(sec, { layerEl: lb, group });
 
         sec.items.forEach(it => {
           const d = it.def, url = srcOf(d);
@@ -131,24 +263,30 @@
           keep.add(key);
           let f = frames.get(key);
           if (!f || f.type !== d.type) {
-            f?.el.remove();
+            if (f) drop(f);
             const ie = document.createElement('div');
             ie.className = 'item';
-            ie.innerHTML = `<div class="item-label"></div><div class="item-frame">${d.type === 'image'
-              ? `<img src="${esc(url)}" draggable="false">`
-              : `<iframe src="${esc(url)}" tabindex="-1" scrolling="no"></iframe>`}</div>`;
+            ie.innerHTML = `<div class="item-label"></div><div class="item-frame"><img class="thumb" alt="" draggable="false"></div>`;
             world.appendChild(ie);
-            f = { el: ie, type: d.type, url };
+            f = { el: ie, type: d.type, url, thumbUrl: thumbOf(d), thumb: 'idle', live: null, visible: false, seen: 0 };
+            ie._frame = f;
             frames.set(key, f);
+            lazy.observe(ie);
           } else if (f.url !== url) {
-            f.el.querySelector('iframe, img').src = url;
+            // new rev: reload the live document, fetch the matching thumbnail
+            if (f.live) f.live.src = url;
             f.url = url;
+            f.thumbUrl = thumbOf(d);
+            f.thumb = 'idle';
+            if (f.visible) showThumb(f);
           }
-          const ie = f.el, media = ie.querySelector('iframe, img');
+          f.box = it;
+          f.title = d.title;
+          const ie = f.el;
           ie.dataset.id = d.id;
           Object.assign(ie.style, { left: it.x + 'px', top: it.y + 'px', width: it.w + 'px', height: it.h + 'px' });
           ie.querySelector('.item-label').innerHTML = esc(d.title) + badge(d.status);
-          d.type === 'image' ? (media.alt = d.title) : (media.title = d.title);
+          if (f.live) d.type === 'image' ? (f.live.alt = d.title) : (f.live.title = d.title);
           it.el = ie;
 
           const li = document.createElement('button');
@@ -158,19 +296,71 @@
             if (e.shiftKey || e.metaKey || e.ctrlKey) return select(it, true, true);
             select(it); zoomTo(it, true);
           };
-          layers.appendChild(li);
+          sec.group.appendChild(li);
           it.layerEl = li;
         });
       });
-      frames.forEach((f, key) => { if (!keep.has(key)) { f.el.remove(); frames.delete(key); } });
+      frames.forEach((f, key) => { if (!keep.has(key)) { drop(f); frames.delete(key); } });
+      refresh();
       if (!items.length) viewport.insertAdjacentHTML('beforeend',
         `<div class="empty-msg"><div><b>${esc(t('project.empty'))}</b>${esc(t('project.emptyHint'))}</div></div>`);
     }
 
-    // rebuilds the canvas from the manifest, keeping view and selection
+    function renderPages() {
+      pagesNav.innerHTML = '';
+      pagesNav.parentElement.hidden = pages.length < 2;
+      if (pages.length < 2) return;
+      pages.forEach(p => {
+        const n = p.sections.reduce((a, s) => a + (s.items || []).length, 0);
+        const b = document.createElement('button');
+        b.className = 'layer l-page' + (p === page ? ' active' : '');
+        b.innerHTML = `${ICONS.page}<span>${esc(pageName(p))}</span><span class="meta">${n}</span>`;
+        b.onclick = () => goPage(p);
+        pagesNav.appendChild(b);
+      });
+    }
+
+    function fold(sec, hide) {
+      sec.group.hidden = hide;
+      sec.layerEl.classList.toggle('folded', hide);
+      hide ? folded.add(sec.def.id) : folded.delete(sec.def.id);
+      saveFolded();
+    }
+
+    function goPage(p, itemId) {
+      if (p !== page) {
+        clearTimeout(saveT);
+        store.set({ ...view, sel: selected?.def.id ?? null }); // the page we leave keeps its view
+        page = p;
+        try { localStorage.setItem(PAGE_KEY, p.title); } catch {}
+        selected = null; picked.clear();
+        build();
+      }
+      restoreView(itemId);
+    }
+
+    // itemId: zoom on that board; otherwise the page's last view, or fit
+    function restoreView(itemId) {
+      const saved = store.get();
+      const target = itemId && items.find(i => i.def.id === itemId);
+      if (target && saved?.sel !== itemId) {
+        select(target); zoomTo(target, false);
+      } else if (saved && Number.isFinite(saved.s)) {
+        Object.assign(view, { x: saved.x, y: saved.y, s: saved.s });
+        const it = items.find(i => i.def.id === saved.sel);
+        it ? select(it) : select(null, true);
+      } else {
+        fitAll(false);
+        select(null, true);
+      }
+    }
+
+    // rebuilds the canvas from the manifest, keeping page, view and selection
     function build() {
       const selId = selected?.def.id, pickedIds = new Set([...picked].map(i => i.def.id));
       selected = null; picked.clear();
+      paginate();
+      setParam('pg', pages.length > 1 ? page.title : null);
       layout();
       render();
       document.title = (WS.name || PROJECT.name) + ' — Atelier';
@@ -190,7 +380,7 @@
       // will-change only while moving: at rest Chrome re-rasterizes and boards stay sharp
       world.style.willChange = 'transform';
       clearTimeout(moveT);
-      moveT = setTimeout(() => { world.style.willChange = 'auto'; }, 150);
+      moveT = setTimeout(() => { world.style.willChange = 'auto'; refresh(); }, 150);
       world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`;
       world.style.setProperty('--inv', 1 / view.s);
       zoomVal.textContent = Math.round(view.s * 100) + '%';
@@ -257,7 +447,11 @@
         selected = it;
       }
       items.forEach(i => { i.el.classList.toggle('selected', picked.has(i)); i.layerEl.classList.toggle('active', picked.has(i)); });
-      if (selected && !quiet) selected.layerEl.scrollIntoView({ block: 'nearest' });
+      if (selected && !quiet) {
+        const sec = sections.find(s => s.items.includes(selected));
+        if (sec?.group.hidden) fold(sec, false);
+        selected.layerEl.scrollIntoView({ block: 'nearest' });
+      }
       setParam('b', selected ? selected.def.id : null); // the URL always links to the selected board
       openBtn.disabled = !selected;
       apply();
@@ -393,18 +587,14 @@
 
     /* ---------- STARTUP ---------- */
     if (window.innerWidth < 760) document.body.classList.add('no-sidebar');
+    // page: the one holding ?b= → ?pg= → last opened → first
+    const deep = params.get('b');
+    paginate();
+    const lastPage = (() => { try { return localStorage.getItem(PAGE_KEY); } catch { return null; } })();
+    page = pages.find(p => deep && p.sections.some(s => (s.items || []).some(i => i.id === deep)))
+      || pages.find(p => p.title === params.get('pg'))
+      || pages.find(p => p.title === lastPage) || pages[0];
     build();
-    const saved = store.get(), deep = params.get('b');
-    const target = deep && items.find(i => i.def.id === deep);
-    if (target && saved?.sel !== deep) {
-      select(target); zoomTo(target, false);
-    } else if (saved && Number.isFinite(saved.s)) {
-      Object.assign(view, { x: saved.x, y: saved.y, s: saved.s });
-      const it = items.find(i => i.def.id === saved.sel);
-      it ? select(it) : apply();
-    } else {
-      fitAll(false);
-      select(null);
-    }
+    restoreView(deep);
   }
 })();

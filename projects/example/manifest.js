@@ -8,6 +8,8 @@
    cover       → (optional) item id shown on the projects page card
    sections[]  → groups stacked top to bottom
      id, title, note?, x?, y?
+     page?     → starts a page (canvas shows one page at a time);
+                 following sections stay on it until the next `page`
      items[]   → boards placed side by side, left to right
        id, title, type: "html" | "image", src, w, h
        status? → "draft" | "review" | "approved" (badge on the canvas)

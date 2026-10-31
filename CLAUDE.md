@@ -31,6 +31,7 @@ projects/<id>/assets/     → project css/logo/fonts
 projects/<id>/boards/     → one board = one standalone HTML file
 projects/<id>/sources/    → the user's original files (pdf, png…): do not modify
 projects/<id>/exports/    → a copy of every export, one folder per run (`YYYY-MM-DD HH.MM.SS`), saved by atelier.py: do not modify
+projects/<id>/.thumbs/    → canvas thumbnails `<itemId>@<rev>.webp`, rendered by atelier.py (gitignored, safe to delete)
 projects/<id>/CLAUDE.md   → project-specific rules (brand, tone)
 projects/example/         → demo project, the only versioned one
 ```
@@ -75,6 +76,12 @@ Atelier re-reads `manifest.js` every 2 s (canvas and viewer): manifest changes s
 Links: `Atelier.html?p=<id>&b=<itemId>` opens the project zoomed on that board (the URL updates with the selection); `view.html?p=<id>&b=<itemId>` opens it in the viewer.
 
 Sections stack vertically in order; boards sit side by side left to right. Use `x`/`y` on a section only when it needs a fixed position.
+
+## Pages and performance
+
+Big projects get split into pages (like Figma pages): `page: "Drop 01"` on a section starts a page, and the sections after it stay on that page until another `page`. The canvas lays out only the current page (Pages list at the top of the sidebar, `?pg=<title>` in the URL, view remembered per page); the viewer and the projects page still see every board. Without any `page` there is a single page and no Pages list.
+
+On the canvas a board is shown as its thumbnail (`.thumbs/<itemId>@<rev>.webp`, 640 px on the longest side); its real document loads only while it is on screen and big enough that the thumbnail would look soft, and is dropped right after. Served by `atelier.py`, thumbnails are rendered on demand (`/__atelier/thumb`, re-rendered when the board file is newer). From `file://` they must exist on disk: **after creating or editing boards (and bumping `rev`), run `python3 atelier.py --thumbs <id>`** (renders only missing/outdated ones, removes the rest). A board without its thumbnail falls back to loading live near the viewport (at most 40 kept), so a stale `rev` never shows an old image. Past ~40–50 boards on one page, propose splitting it into pages. Sections can be folded in the layers list (remembered per browser).
 
 ## Export
 

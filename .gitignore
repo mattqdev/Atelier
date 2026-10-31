@@ -10,3 +10,5 @@ __pycache__/
 reels/
 # Exports kept by atelier.py stay local
 projects/*/exports/
+# Canvas thumbnails rendered by atelier.py stay local
+projects/*/.thumbs/

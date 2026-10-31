@@ -152,6 +152,8 @@
   async function store(base, dir, f) {
     const q = new URLSearchParams({ base, dir, name: f.name });
     const r = await fetch('__atelier/save?' + q, { method: 'POST', body: f.blob });
+    // 501/404: an atelier.py started before /__atelier/save existed is still running
+    if (r.status === 501 || r.status === 404) throw new Error(t('export.serverOutdated'));
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
   }
   const stamp = (d = new Date()) => {

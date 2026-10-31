@@ -129,6 +129,14 @@ body.no-sidebar .sidebar { transform: translateX(-100%); }
 .layer.active { background: #E5F4FF; color: var(--ui-text); }
 .layer .ic { width: 14px; height: 14px; flex: none; stroke: var(--ui-muted); fill: none; stroke-width: 1.6; }
 .layer .meta { margin-left: auto; color: var(--ui-muted); font-size: 11px; }
+.sb-pages { border-bottom: 1px solid var(--ui-line); padding-bottom: 8px; margin-bottom: 10px; }
+.sb-pages[hidden] { display: none; }
+.layer.l-page.active { font-weight: 600; }
+.layer.l-section { padding-left: 4px; }
+.layer .fold { display: grid; place-items: center; width: 18px; height: 18px; margin-right: -4px; border-radius: 4px; flex: none; }
+.layer .fold:hover { background: var(--ui-line); }
+.layer .chev { width: 12px; height: 12px; stroke: var(--ui-muted); fill: none; stroke-width: 1.8; transform: rotate(90deg); transition: transform .12s; }
+.layer.folded .chev { transform: none; }
 
 /* ---------- CANVAS ---------- */
 .viewport {
@@ -165,11 +173,15 @@ body.space .viewport { cursor: grab; }
   font-size: calc(11px * var(--inv)); color: var(--ui-muted); white-space: nowrap;
 }
 .item-frame {
-  width: 100%; height: 100%; background: #fff; overflow: hidden;
+  position: relative; width: 100%; height: 100%; background: #fff; overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 8px 30px rgba(0,0,0,.08);
 }
-.item-frame iframe, .item-frame img { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
+.item-frame > * { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; pointer-events: none; visibility: hidden; }
 .item-frame img { object-fit: cover; }
+.item-frame .thumb { object-fit: fill; }
+/* thumbnail when there is one, the live board on top once loaded, a placeholder before either */
+.item.thumb-on .thumb, .item.live-on .live { visibility: visible; }
+.item:not(.thumb-on):not(.live-on) .item-frame { background: var(--ui-hover); }
 .item:hover .item-frame { outline: calc(1.5px * var(--inv)) solid var(--ui-accent); }
 .item.selected .item-frame { outline: calc(2px * var(--inv)) solid var(--ui-accent); }
 .item.selected .item-label { color: var(--ui-accent); font-weight: 600; }
