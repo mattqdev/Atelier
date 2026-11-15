@@ -43,6 +43,7 @@ Like Figma: pick the boards (single, multiple, whole sections or everything) and
 | Scale | `0.5x` … `4x`, or a target size: `512w` (width), `1080h` (height) |
 | Suffix | appended to the file name; empty = `@2x` for scaled exports |
 | Format | PNG, JPG, WEBP (with quality 1–100), PDF (vector, original size) |
+| Transparent background | PNG and WEBP: no page background, for print files |
 
 One file downloads as-is; several are bundled into `<project>.zip`. Settings are remembered.
 

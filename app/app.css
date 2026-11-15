@@ -256,11 +256,14 @@ body.space .viewport { cursor: grab; }
 .xp-row input:focus, .xp-row select:focus { border-color: var(--ui-accent); box-shadow: 0 0 0 1px var(--ui-accent); }
 .xp-row input:disabled { color: var(--ui-muted); background: var(--ui-hover); }
 .xp-row .bad { border-color: #E5484D !important; box-shadow: 0 0 0 1px #E5484D !important; }
-.xp-meta { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; color: var(--ui-muted); font-size: 12px; min-height: 18px; margin-top: -2px; }
+.xp-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--ui-muted); font-size: 12px; min-height: 18px; margin-top: -2px; }
 .xp-dim { font-variant-numeric: tabular-nums; }
 .xp-q { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .xp-q input { width: 110px; accent-color: var(--ui-accent); }
 .xp-q b { width: 24px; text-align: right; color: var(--ui-text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.xp-dim, .xp-alpha { white-space: nowrap; }
+.xp-alpha { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.xp-alpha input { accent-color: var(--ui-accent); width: 14px; height: 14px; flex: none; margin: 0; }
 .xp-merge { display: flex; align-items: center; gap: 8px; margin: 14px 12px 0 18px; padding-top: 12px; border-top: 1px solid var(--ui-line); cursor: pointer; }
 .xp-merge[hidden] { display: none; }
 .xp-merge.off { color: var(--ui-muted); }

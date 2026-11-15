@@ -9,11 +9,12 @@
    board). Several files are bundled into a ZIP (stored, no
    compression, no dependencies).
 
-   Each export setting is { scale, suffix, format, quality }:
+   Each export setting is { scale, suffix, format, quality, transparent }:
      scale   → "2x" | "512w" (width in px) | "1080h" (height in px)
      suffix  → appended to the file name; empty = "@2x" style default
      format  → png | jpg | webp | pdf (pdf is vector, scale ignored)
      quality → 1–100, jpg/webp only
+     transparent → png/webp only: no background (print files), see atelier.py
    Settings are remembered in localStorage (atelier-export, and
    atelier-export-merge for the single-PDF checkbox).
 
@@ -27,9 +28,9 @@
   const KEY = 'atelier-export', MERGE_KEY = 'atelier-export-merge';
   const PARALLEL = 4; // requests in flight; the server caps its own Chrome tabs
   const FORMATS = {
-    png: { label: 'PNG', mime: 'image/png' },
+    png: { label: 'PNG', mime: 'image/png', alpha: true },
     jpg: { label: 'JPG', mime: 'image/jpeg', quality: true },
-    webp: { label: 'WEBP', mime: 'image/webp', quality: true },
+    webp: { label: 'WEBP', mime: 'image/webp', quality: true, alpha: true },
     pdf: { label: 'PDF', mime: 'application/pdf', vector: true }
   };
   const SCALES = ['0.5x', '0.75x', '1x', '1.5x', '2x', '3x', '4x', '512w', '1080w', '2048w', '1080h'];
@@ -42,9 +43,10 @@
     : Promise.resolve('noserver');
 
   // defs: one board, or several for a single multi-page PDF
-  async function render(base, defs, scale, format, quality) {
+  async function render(base, defs, scale, format, quality, transparent) {
     const q = new URLSearchParams({ scale, format });
     if (quality) q.set('quality', quality);
+    if (transparent) q.set('transparent', 1);
     for (const def of [].concat(defs)) {
       q.append('src', base + def.src); q.append('type', def.type === 'image' ? 'image' : 'html');
       q.append('w', def.w); q.append('h', def.h);
@@ -63,10 +65,11 @@
     const s = u === 'x' ? v : u === 'w' ? v / w : v / h;
     return s > 0 && Math.max(w, h) * s <= MAX_SIDE ? s : null;
   }
+  const isClear = p => !!(p.transparent && FORMATS[p.format].alpha);
   const autoSuffix = p => {
     if (FORMATS[p.format].vector) return '';
     const m = String(p.scale).trim().match(/^(\d*\.?\d+)\s*x?$/i);
-    return m && +m[1] !== 1 ? '@' + +m[1] + 'x' : '';
+    return (m && +m[1] !== 1 ? '@' + +m[1] + 'x' : '') + (isClear(p) ? '-transparent' : '');
   };
   const suffixOf = p => p.suffix || autoSuffix(p);
   const safe = s => String(s).replace(/[\/\\:*?"<>|\u0000-\u001f]+/g, '-').trim() || 'board';
@@ -92,13 +95,13 @@
     const f = FORMATS[p.format];
     if (f.vector) return render(base, def, 1, 'pdf');
     const s = parseScale(p.scale, def.w, def.h);
-    const [tw, th] = sizeOf(def, p);
+    const [tw, th] = sizeOf(def, p), clear = isClear(p), key = def.src + '|' + s + '|' + clear;
     // whole-pixel size: Chrome encodes the final file itself, no round trip through a canvas
     if (Number.isInteger(def.w * s) && Number.isInteger(def.h * s)) {
-      if (p.format !== 'png') return render(base, def, s, p.format, p.quality);
-      return cache[def.src + '|' + s] ||= render(base, def, s, 'png');
+      if (p.format !== 'png') return render(base, def, s, p.format, p.quality, clear);
+      return cache[key] ||= render(base, def, s, 'png', undefined, clear);
     }
-    const png = await (cache[def.src + '|' + s] ||= render(base, def, s, 'png'));
+    const png = await (cache[key] ||= render(base, def, s, 'png', undefined, clear));
     const bmp = await createImageBitmap(png);
     if (p.format === 'png' && bmp.width === tw && bmp.height === th) return png;
     const c = document.createElement('canvas');
@@ -261,7 +264,8 @@
             `<option value="${k}" ${k === p.format ? 'selected' : ''}>${f.label}</option>`).join('')}</select>
           <button class="xp-icon" data-del title="${esc(t('export.remove'))}" ${presets.length < 2 ? 'disabled' : ''}>${ICON_MINUS}</button>
           <div class="xp-meta"><span class="xp-dim"></span>${FORMATS[p.format].quality ? `
-            <label class="xp-q">${esc(t('export.quality'))}<input type="range" min="1" max="100" value="${p.quality}"><b>${p.quality}</b></label>` : ''}</div>
+            <label class="xp-q">${esc(t('export.quality'))}<input type="range" min="1" max="100" value="${p.quality}"><b>${p.quality}</b></label>` : ''}${FORMATS[p.format].alpha ? `
+            <label class="xp-alpha"><input type="checkbox" ${p.transparent ? 'checked' : ''}>${esc(t('export.transparent'))}</label>` : ''}</div>
         </div>`).join('');
       sync();
     }
@@ -271,6 +275,7 @@
       if (e.target.matches('.xp-scale')) p.scale = e.target.value;
       if (e.target.matches('.xp-suffix')) p.suffix = e.target.value;
       if (e.target.matches('[type=range]')) { p.quality = +e.target.value; e.target.nextElementSibling.textContent = p.quality; }
+      if (e.target.matches('.xp-alpha input')) p.transparent = e.target.checked;
       if (e.target.matches('.xp-fmt')) { p.format = e.target.value; save(presets); return drawRows(); }
       save(presets); sync();
     });

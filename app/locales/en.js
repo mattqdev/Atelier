@@ -60,6 +60,7 @@
   "export.suffix": "Suffix",
   "export.format": "Format",
   "export.quality": "Quality",
+  "export.transparent": "Transparent background",
   "export.vector": "Vector PDF · original size",
   "export.mergePdf": "Single PDF with all boards (one page each)",
   "export.badScale": "Invalid scale (use 2x, 512w or 1080h)",

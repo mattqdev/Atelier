@@ -58,6 +58,7 @@
   "export.suffix": "Suffisso",
   "export.format": "Formato",
   "export.quality": "Qualità",
+  "export.transparent": "Sfondo trasparente",
   "export.vector": "PDF vettoriale · dimensione originale",
   "export.mergePdf": "Un unico PDF con tutte le tavole (una pagina ciascuna)",
   "export.badScale": "Scala non valida (usa 2x, 512w o 1080h)",

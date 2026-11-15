@@ -21,7 +21,9 @@ Chrome is auto-detected; set ATELIER_CHROME=/path/to/chrome to override.
 
 Endpoints (used by app/export.js):
     GET /__atelier/ping                         → {"export": bool}, warms Chrome up
-    GET /__atelier/render?src=&type=&w=&h=&scale=&format=png|jpg|webp|pdf&quality=
+    GET /__atelier/render?src=&type=&w=&h=&scale=&format=png|jpg|webp|pdf&quality=[&transparent=1]
+        transparent (png/webp) → no page background; html boards load with #print,
+        so a board can drop its own preview background
         src/type/w/h repeated → one PDF with a page per board
     GET /__atelier/sheet?src=&type=&w=&h=[&pdf=1] → page wrapping images / several boards
     POST /__atelier/save?base=projects/<id>/&dir=&name=  (body = file) → {"path"}
@@ -206,13 +208,13 @@ class Browser:
         except Exception:  # noqa: BLE001 — warm-up is best effort
             pass
 
-    def render(self, url, w, h, scale, fmt, quality=90, timeout=60):
+    def render(self, url, w, h, scale, fmt, quality=90, timeout=60, transparent=False):
         with self.slots:
             try:
-                return self._render(self.start(), url, w, h, scale, fmt, quality, timeout)
+                return self._render(self.start(), url, w, h, scale, fmt, quality, timeout, transparent)
             except (OSError, ConnectionError):
                 self.stop()  # Chrome crashed or hung: restart once
-                return self._render(self.start(), url, w, h, scale, fmt, quality, timeout)
+                return self._render(self.start(), url, w, h, scale, fmt, quality, timeout, transparent)
 
     def evaluate(self, url, expression, timeout=30):
         """Load url in a fresh tab and return the (JSON) value of expression."""
@@ -226,11 +228,13 @@ class Browser:
         with self.slots:
             return self._tab(self.start(), timeout, run)
 
-    def _render(self, endpoint, url, w, h, scale, fmt, quality, timeout):
+    def _render(self, endpoint, url, w, h, scale, fmt, quality, timeout, transparent=False):
         def run(call):
             call("Page.enable")
             call("Emulation.setDeviceMetricsOverride", width=w, height=h,
                  deviceScaleFactor=scale if fmt != "pdf" else 1, mobile=False)
+            if transparent:
+                call("Emulation.setDefaultBackgroundColorOverride", color={"r": 0, "g": 0, "b": 0, "a": 0})
             call("Page.navigate", "Page.loadEventFired", url=url)
             # wait for web fonts and images (iframes included), finish CSS animations, let it paint
             call("Runtime.evaluate", awaitPromise=True, expression=SETTLE_JS)
@@ -450,6 +454,7 @@ class Handler(SimpleHTTPRequestHandler):
             scale = float(arg("scale", "1"))
             quality = int(arg("quality", "90"))
             fmt = arg("format", "png")
+            transparent = arg("transparent") == "1" and fmt in ("png", "webp")
         except LookupError as e:
             return self.fail(404, str(e))
         except (TypeError, ValueError):
@@ -463,13 +468,13 @@ class Handler(SimpleHTTPRequestHandler):
             return self.fail(400, f"image too large (max {MAX_SIDE}px per side)")
         base = f"http://127.0.0.1:{PORT}/"
         if len(items) == 1 and kind == "html":
-            url = base + quote(src)
+            url = base + quote(src) + ("#print" if transparent else "")
         else:
             sheet = [("src", i[0]) for i in items] + [("type", i[1]) for i in items] + \
                     [("w", i[2]) for i in items] + [("h", i[3]) for i in items]
             url = base + "__atelier/sheet?" + urlencode(sheet + [("pdf", int(fmt == "pdf"))])
         try:
-            body = BROWSER.render(url, w, h, scale, fmt, quality)
+            body = BROWSER.render(url, w, h, scale, fmt, quality, transparent=transparent)
         except Exception as e:  # noqa: BLE001 — report any Chrome failure to the UI
             return self.fail(500, str(e))
         mime = {"pdf": "application/pdf", "jpg": "image/jpeg", "webp": "image/webp"}.get(fmt, "image/png")
