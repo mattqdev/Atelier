@@ -43,6 +43,7 @@ Like Figma: pick the boards (single, multiple, whole sections or everything) and
 | Scale | `0.5x` … `4x`, or a target size: `512w` (width), `1080h` (height) |
 | Suffix | appended to the file name; empty = `@2x` for scaled exports |
 | Format | PNG, JPG, WEBP (with quality 1–100), PDF (vector, original size) |
+| Transparent background | PNG and WEBP: no page background, for print files |
 
 One file downloads as-is; several are bundled into `<project>.zip`. Settings are remembered.
 
@@ -54,6 +55,14 @@ python3 atelier.py --port 8000 --no-open
 ```
 
 Chrome/Chromium/Edge/Brave are auto-detected; set `ATELIER_CHROME=/path/to/chrome` otherwise. Everything else keeps working from `file://` without the server.
+
+### Thumbnails
+
+On the canvas each board is a small cached image (`projects/<id>/.thumbs/`); the real HTML loads only for the boards you zoom in on, so memory stays flat however big the project is. Served by `atelier.py`, thumbnails are rendered on demand. Opened from `file://`, render them once (Claude does it after editing boards); boards without one simply load live:
+
+```
+python3 atelier.py --thumbs NextWave   # missing or outdated ones; no id = every project
+```
 
 ### One-click launcher
 
