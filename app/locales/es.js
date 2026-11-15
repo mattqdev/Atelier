@@ -1,10 +1,11 @@
-/* Atelier — English (reference locale: every key must exist here).
-   To add a language: copy this file to locales/<code>.js, translate
-   the values, and add a <script> tag for it in Atelier.html. */
+/* Atelier — Spanish. Reference locale is en.js: keep every key in sync. */
 (window.ATELIER_LOCALES ||= {}).es = {
-  _name: "Spanish",
+  _name: "Español",
   "layers.toggle": "Capas ( \\ )",
   "layers.title": "Capas",
+  "layers.fold": "Contraer / expandir",
+  "pages.title": "Páginas",
+  "pages.default": "Página",
   "project.change": "Cambiar de proyecto",
   "project.example": "Ejemplo",
   "project.notFound": "Proyecto no encontrado",
@@ -57,6 +58,8 @@
   "export.suffix": "Sufijo",
   "export.format": "Formato",
   "export.quality": "Calidad",
+  "export.transparent": "Fondo transparente",
+  "export.serverOutdated": "el atelier.py en ejecución está desactualizado: reinícialo",
   "export.vector": "Vector PDF · tamaño original",
   "export.mergePdf": "PDF único con todos los tableros (uno por página)",
   "export.badScale": "Escala no válida (usa 2x, 512w o 1080h)",
