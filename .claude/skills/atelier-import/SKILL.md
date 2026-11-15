@@ -76,6 +76,7 @@ python3 .claude/skills/atelier-import/scripts/tune.py <board.html> <original.png
 ### 6. Finish
 
 - The manifest lists the HTML boards (`type: "html"`, `src: "boards/…"`, sizes = original design size). The originals stay in `sources/`: they are the reference for future edits.
+- Big imports: group sections into pages (`page: "…"` on the first section of each page) so no page goes past ~40–50 boards, then render the canvas thumbnails with `python3 atelier.py --thumbs <id>`.
 - If one asset is clearly the logo, set `logo:` (it shows on a white top bar, so use a version that is visible there).
 - `projects/<id>/CLAUDE.md`: origin and date, board list, shared files, brand facts read from the material (colours, type, rules), and the rebuild notes a future edit needs (formula constants, quirks such as offsets you had to reproduce).
 

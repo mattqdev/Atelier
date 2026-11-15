@@ -55,10 +55,13 @@ Pure images (png/jpg/svg/webp) don't need an HTML file: add them directly as `ty
 - `src` relative to the project folder.
 - Optional: `status: "draft" | "review" | "approved"` (new boards → `"draft"` unless the user says otherwise, if the project uses statuses), `rev`.
 - Placement: sections stack top to bottom, items go left to right in array order. A carousel = one section with its slides in order. Add `note` on the section for format/count ("9 slide · 1080×1350").
+- Pages: if the project uses `page` on its sections, put a new section on the right page (sections inherit the page of the one before). If a page passes ~40–50 boards, suggest splitting it: big pages make the canvas lag.
 
 ## Editing an existing board
 
 The canvas re-reads the manifest every 2 s but **does not watch board files**. After editing a board, bump its `rev` (add `rev: 2`, or increment it) so Atelier reloads that iframe. Without it the user keeps seeing the old version and thinks the edit failed.
+
+Then refresh the canvas thumbnails (the canvas shows boards as cached images and only loads the HTML when zoomed in): `python3 atelier.py --thumbs <id>`. It renders only new or outdated ones (a few seconds). Do it after adding boards too, once per batch of edits.
 
 Duplicating a board: copy the file, give the new item a new `id` and `title`, and adjust the content.
 
@@ -72,6 +75,6 @@ Duplicating a board: copy the file, give the new item a new `id` and `title`, an
      "file://$PWD/projects/<id>/boards/<section>/<name>.html"
    ```
    For several boards, also check `view.html?p=<id>&b=<itemId>` or the whole canvas `Atelier.html?p=<id>` at 1600×1000.
-3. Fix and re-check until it looks right, then give the user the link `Atelier.html?p=<id>&b=<itemId>`.
+3. Fix and re-check until it looks right, run `python3 atelier.py --thumbs <id>`, then give the user the link `Atelier.html?p=<id>&b=<itemId>`.
 
 Save screenshots in the scratchpad, not in the project.

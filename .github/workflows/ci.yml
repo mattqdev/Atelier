@@ -55,8 +55,19 @@ jobs:
           curl -sf -o shots/welcome.pdf "http://127.0.0.1:4747/__atelier/render?$q&format=pdf"
           file shots/welcome.png | grep -q 'PNG image data, 1080 x 1350'
           head -c 4 shots/welcome.pdf | grep -q '%PDF'
+          echo '<!doctype html><p>x' > projects/example/boards/clear.html
+          curl -sf -o shots/clear.png "http://127.0.0.1:4747/__atelier/render?src=projects/example/boards/clear.html&w=100&h=100&scale=1&format=png&transparent=1"
+          file shots/clear.png | grep -q 'RGBA'
           # must refuse anything outside projects/
           test "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:4747/__atelier/render?src=atelier.py&w=10&h=10")" = 404
+          curl -sf -o shots/thumb.webp "http://127.0.0.1:4747/__atelier/thumb?base=projects/example/&id=welcome&rev=0&$q"
+          file shots/thumb.webp | grep -q 'Web/P'
+          test -s projects/example/.thumbs/welcome@0.webp
+      - name: Thumbnails from the command line
+        run: |
+          rm -rf projects/example/.thumbs
+          python3 atelier.py --thumbs example
+          test -s projects/example/.thumbs/welcome@0.webp
       - uses: actions/upload-artifact@v4
         if: always()
         with:
