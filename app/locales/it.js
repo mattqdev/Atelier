@@ -4,6 +4,8 @@
   "layers.toggle": "Livelli ( \\ )",
   "layers.title": "Livelli",
   "layers.fold": "Comprimi / espandi",
+  "layers.search": "Filtra tavole",
+  "layers.noMatch": "Nessuna tavola corrisponde",
   "pages.title": "Pagine",
   "pages.default": "Pagina",
   "project.change": "Cambia progetto",
@@ -100,5 +102,5 @@
   "hint.close": "Chiudi",
   "hint.body": "<kbd>Trascina</kbd> o scroll per muoverti · <kbd>⌘</kbd>+scroll / pinch per zoom<br>"
     + "<kbd>Doppio clic</kbd> zoom sulla tavola · <kbd>Shift</kbd>+clic selezione multipla · <kbd>←</kbd> <kbd>→</kbd> sfoglia · <kbd>Invio</kbd> apri<br>"
-    + "<kbd>Shift+1</kbd> vedi tutto · <kbd>Shift+2</kbd> zoom selezione · <kbd>Shift+0</kbd> 100% · <kbd>⇧⌘E</kbd> esporta · <kbd>\\</kbd> livelli"
+    + "<kbd>Shift+1</kbd> vedi tutto · <kbd>Shift+2</kbd> zoom selezione · <kbd>Shift+0</kbd> 100% · <kbd>⇧⌘E</kbd> esporta · <kbd>\\</kbd> livelli · <kbd>/</kbd> filtra tavole"
 };
