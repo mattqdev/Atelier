@@ -122,6 +122,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 }
 body.no-sidebar .sidebar { transform: translateX(-100%); }
 .sb-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--ui-muted); padding: 6px 16px 8px; }
+.sb-search { display: flex; align-items: center; gap: 8px; margin: 0 12px 6px; padding: 0 10px; height: 32px; border-radius: 8px; background: var(--ui-hover); color: var(--ui-muted); }
+.sb-search svg { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; }
+.sb-search input { flex: 1; min-width: 0; font: inherit; color: var(--ui-text); background: none; border: 0; outline: 0; }
+.sb-search:focus-within { box-shadow: 0 0 0 2px var(--ui-accent); }
+.sb-empty { padding: 6px 16px; color: var(--ui-muted); font-size: 12.5px; }
+.layer[hidden] { display: none; }
 .layer { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 6px 16px; border-radius: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .layer:hover { background: var(--ui-hover); }
 .layer.l-section { font-weight: 600; margin-top: 6px; }
