@@ -377,7 +377,7 @@
     });
     layerSearch.addEventListener('keydown', e => {
       if (e.key === 'Enter') { const it = firstMatch(); if (it) { select(it); zoomTo(it, true); } }
-      if (e.key === 'Escape') { layerSearch.value = ''; layerFilter = ''; applyLayerFilter(); layerSearch.blur(); }}
+      if (e.key === 'Escape') { layerSearch.value = ''; layerFilter = ''; applyLayerFilter(); layerSearch.blur(); }
     });
 
     function goPage(p, itemId) {
