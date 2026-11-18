@@ -6,6 +6,8 @@
   "layers.toggle": "Layers ( \\ )",
   "layers.title": "Layers",
   "layers.fold": "Collapse / expand",
+  "layers.search": "Filter boards",
+  "layers.noMatch": "No boards match",
   "pages.title": "Pages",
   "pages.default": "Page",
   "project.change": "Switch project",
@@ -102,5 +104,5 @@
   "hint.close": "Close",
   "hint.body": "<kbd>Drag</kbd> or scroll to move · <kbd>⌘</kbd>+scroll / pinch to zoom<br>"
     + "<kbd>Double-click</kbd> zoom to board · <kbd>Shift</kbd>+click multi-select · <kbd>←</kbd> <kbd>→</kbd> browse · <kbd>Enter</kbd> open<br>"
-    + "<kbd>Shift+1</kbd> fit all · <kbd>Shift+2</kbd> fit selection · <kbd>Shift+0</kbd> 100% · <kbd>⇧⌘E</kbd> export · <kbd>\\</kbd> layers"
+    + "<kbd>Shift+1</kbd> fit all · <kbd>Shift+2</kbd> fit selection · <kbd>Shift+0</kbd> 100% · <kbd>⇧⌘E</kbd> export · <kbd>\\</kbd> layers · <kbd>/</kbd> filter boards"
 };

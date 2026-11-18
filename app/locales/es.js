@@ -4,6 +4,8 @@
   "layers.toggle": "Capas ( \\ )",
   "layers.title": "Capas",
   "layers.fold": "Contraer / expandir",
+  "layers.search": "Filtrar tableros",
+  "layers.noMatch": "Ningún tablero coincide",
   "pages.title": "Páginas",
   "pages.default": "Página",
   "project.change": "Cambiar de proyecto",
@@ -100,5 +102,5 @@
   "hint.close": "Cerrar",
   "hint.body": "<kbd>Drag</kbd> o desplazar para mover · <kbd>⌘</kbd>+desplazar / pellizcar para zoom<br>"
     + "<kbd>Double-click</kbd> ampliar tablero · <kbd>Shift</kbd>+click para selección múltiple · <kbd>←</kbd> <kbd>→</kbd> navegar · <kbd>Enter</kbd> abrir<br>"
-    + "<kbd>Shift+1</kbd> ajustar todo· <kbd>Shift+2</kbd> ajustar selección · <kbd>Shift+0</kbd> 100% · <kbd>⇧⌘E</kbd> exportar · <kbd>\\</kbd> capas"
+    + "<kbd>Shift+1</kbd> ajustar todo· <kbd>Shift+2</kbd> ajustar selección · <kbd>Shift+0</kbd> 100% · <kbd>⇧⌘E</kbd> exportar · <kbd>\\</kbd> capas · <kbd>/</kbd> filtrar tableros"
 };

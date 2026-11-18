@@ -51,6 +51,8 @@
 
     const $ = s => document.querySelector(s);
     const viewport = $('#viewport'), world = $('#world'), layers = $('#layers'), pagesNav = $('#pages');
+    const layerSearch = $('#layerSearch');
+    layerSearch.placeholder = t('layers.search');
     const zoomVal = $('#zoomVal'), openBtn = $('#openBtn'), exportBtn = $('#exportBtn');
 
     const view = { x: 0, y: 0, s: 1 };
@@ -301,6 +303,7 @@
         });
       });
       frames.forEach((f, key) => { if (!keep.has(key)) { drop(f); frames.delete(key); } });
+      applyLayerFilter();
       refresh();
       if (!items.length) viewport.insertAdjacentHTML('beforeend',
         `<div class="empty-msg"><div><b>${esc(t('project.empty'))}</b>${esc(t('project.emptyHint'))}</div></div>`);
@@ -326,6 +329,56 @@
       hide ? folded.add(sec.def.id) : folded.delete(sec.def.id);
       saveFolded();
     }
+
+    /* ---------- LAYERS FILTER ---------- */
+    // Filters the layers list only; the canvas is never touched. A board
+    // matches on its title or its status; a section whose title matches
+    // keeps all its boards. While a filter is active, sections with
+    // matches are shown unfolded; clearing it restores the folded state.
+    let layerFilter = '';
+    const filterHit = text => text.toLowerCase().includes(layerFilter);
+    function boardHit(it, secHit) {
+      const d = it.def;
+      return secHit || filterHit(d.title)
+        || !!(d.status && STATUS.includes(d.status) && (filterHit(d.status) || filterHit(t('status.' + d.status))));
+    }
+    function applyLayerFilter() {
+      layers.querySelector('.sb-empty')?.remove();
+      if (!layerFilter) {
+        sections.forEach(sec => {
+          sec.layerEl.hidden = false;
+          sec.group.hidden = folded.has(sec.def.id);
+          sec.items.forEach(it => { it.layerEl.hidden = false; });
+        });
+        return;
+      }
+      let any = false;
+      sections.forEach(sec => {
+        const secHit = filterHit(sec.def.title);
+        let shown = 0;
+        sec.items.forEach(it => { const hit = boardHit(it, secHit); it.layerEl.hidden = !hit; if (hit) shown++; });
+        sec.layerEl.hidden = !shown;
+        sec.group.hidden = !shown;
+        if (shown) any = true;
+      });
+      if (!any) layers.insertAdjacentHTML('beforeend', `<div class="sb-empty">${esc(t('layers.noMatch'))}</div>`);
+    }
+    const firstMatch = () => {
+      for (const sec of sections) {
+        if (sec.layerEl.hidden) continue;
+        const it = sec.items.find(i => !i.layerEl.hidden);
+        if (it) return it;
+      }
+      return null;
+    };
+    layerSearch.addEventListener('input', () => {
+      layerFilter = layerSearch.value.trim().toLowerCase();
+      applyLayerFilter();
+    });
+    layerSearch.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { const it = firstMatch(); if (it) { select(it); zoomTo(it, true); } }
+      if (e.key === 'Escape') { layerSearch.value = ''; layerFilter = ''; applyLayerFilter(); layerSearch.blur(); }}
+    });
 
     function goPage(p, itemId) {
       if (p !== page) {
@@ -547,6 +600,7 @@
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); return step(-1); }
       if (e.key === 'Enter') return openSelected();
       if (e.key === 'Escape') return select(null);
+      if (e.key === '/') { e.preventDefault(); if (document.body.classList.contains('no-sidebar')) toggleSidebar(); layerSearch.focus(); return; }
       if (e.key === '\\') return toggleSidebar();
     });
     window.addEventListener('keyup', e => { if (e.code === 'Space') document.body.classList.remove('space'); });
